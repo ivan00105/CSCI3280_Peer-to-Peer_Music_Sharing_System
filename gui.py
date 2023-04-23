@@ -25,6 +25,8 @@ class MusicPlayer(tk.Tk):
         self.protocol("WM_DELETE_WINDOW", self.close_window)
         self.update_progress_bar()  # Call the method to start updating the progress bar
         self.slider_dragging = False  # Add this line to initialize slider_dragging to False
+        self.seeking = False
+
 
     def toggle_play_pause(self):
         if self.is_playing:
@@ -86,11 +88,13 @@ class MusicPlayer(tk.Tk):
             # Calculate the new position in the song
             total_length = len(self.audio_player.wav_data['data'])
             new_position = int((float(value) / 100) * total_length)
-            new_position = (new_position // 2) * 2  # Adjust the new position to the nearest even value
+
+            # Calculate audio frame size and adjust new_position
+            frame_size = self.audio_player.wav_data['NumChannels'] * self.audio_player.wav_data['BlockAlign']
+            new_position = (new_position // frame_size) * frame_size
 
             # Update the AudioPlayer instance's index
             self.audio_player.set_position(new_position)
-            
 
     def close_window(self):
         if self.audio_player:
@@ -124,14 +128,19 @@ class MusicPlayer(tk.Tk):
         self.after(1000, self.update_progress_bar)  # Call this method every 1000 ms (1 second)
 
     def on_slider_motion(self, value):
-        if self.audio_player and self.is_playing:
-            self.slider_dragging = True  # Set slider_dragging to True when the slider is being dragged
+        if self.audio_player:
+            self.seeking = True
             self.on_seek(value)
+    
+    def update_slider(self):
+        if not self.seeking:
+            self.slider.set(self.current_time)
+        self.after(1000, self.update_slider)
 
     def on_slider_release(self, event):
-        if self.audio_player and self.is_playing:
-            self.slider_dragging = False  # Set slider_dragging to False when the slider is released
-            self.on_seek(self.progress_bar.get())
+        if self.audio_player:
+            self.seeking = False
+
 
     def setup_widgets(self):
         ctk.set_default_color_theme("green")
@@ -154,7 +163,7 @@ class MusicPlayer(tk.Tk):
         self.progress_bar.set(0,100)
         
         self.progress_bar.bind('<B1-Motion>', lambda event: self.on_slider_motion(self.progress_bar.get()))
-        self.progress_bar.bind('<ButtonRelease-1>', self.on_slider_release)  # Add this line to bind the release event
+        self.progress_bar.bind('<ButtonRelease-1>', self.on_slider_release)
         
         self.current_time_label = ctk.CTkLabel(controls_frame, text="0:00")
         self.current_time_label.pack(side=tk.LEFT)
