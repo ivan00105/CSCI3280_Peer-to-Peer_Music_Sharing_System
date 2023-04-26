@@ -4,7 +4,32 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QLabel, QPus
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 import socket
 import threading
+import requests # if pip install requests does not work, run "python -m pip install requests"
 
+def get_local_ip():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip_address = s.getsockname()[0]
+        s.close()
+        return ip_address
+    except Exception as e:
+        print("Error getting local IP address:", e)
+        return None
+
+# Function to get the public IP address of the client
+def get_public_ip():
+    try:
+        response = requests.get("https://api.ipify.org")
+        return response.text.strip()
+    except:
+        return None
+
+
+public_ip = get_public_ip()
+local_ip =  get_local_ip()
+print("Your local IP address is:", local_ip)
+print(public_ip)
 
 class ServerThread(QThread):
     new_message = pyqtSignal(str)
