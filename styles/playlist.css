@@ -1,0 +1,18 @@
+QListView::item {
+        margin-top:10px;
+            color: white;
+            border-bottom: 1px solid white;
+            border-top: 2px
+        }
+        QListView::item:hover {
+            background-color: white;
+            border-left: 3px;
+            color: rgb(0,0,32);
+            font-weight: bold;
+        }
+        QListView::item:selected {
+            background-color: white;
+            border-left: 3px;
+            color: rgb(0,0,32);
+            font-weight: bold;
+        }

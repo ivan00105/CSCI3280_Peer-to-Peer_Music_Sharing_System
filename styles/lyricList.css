@@ -1,0 +1,13 @@
+QListView::item{
+                background:rgb(0,0,32);
+                color:white;
+            }
+            QListView::item:hover {
+                font-weight: bold;
+                color: rgb(245, 36, 67);
+            }
+            
+            QListView::item:selected {
+                  font-weight: bold;
+                color: rgb(245, 36, 67);
+            }

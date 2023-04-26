@@ -1,0 +1,85 @@
+QSlider::groove:horizontal {
+
+    border: 0px solid cyan;
+
+    }
+
+    QSlider::sub-page:horizontal {
+
+    background: green;
+
+    border-radius: 0px;
+
+    margin-top:8px;
+
+    margin-bottom:8px;
+
+    }
+
+    QSlider::add-page:horizontal {
+
+    background: pink;
+
+    border: 0px solid #777;
+
+    border-radius: 2px;
+
+    margin-top:8px;
+
+    margin-bottom:8px;
+
+    }
+
+    QSlider::handle:horizontal {
+
+    background: green;
+
+    border: 1px solid azure;
+
+    width: 14px;
+
+    height:14px;
+
+    border-radius: 8px;
+
+    margin-top:2px;
+
+    margin-bottom:2px;
+
+    }
+
+    QSlider::handle:horizontal:hover {
+
+    background: blue;
+
+    border: 1px solid blue;
+
+    border-radius: 8px;
+
+    }
+
+    QSlider::sub-page:horizontal:disabled {
+
+    background: cyan;
+
+    border-color: #999;
+
+    }
+
+    QSlider::add-page:horizontal:disabled {
+
+    background: brown;
+
+    border-color: #999;
+
+    }
+
+    QSlider::handle:horizontal:disabled {
+
+    background: brown;
+
+    border: 1px solid #aaa;
+
+    border-radius: 4px;
+
+    }
