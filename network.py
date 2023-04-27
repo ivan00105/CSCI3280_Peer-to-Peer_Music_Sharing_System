@@ -29,7 +29,7 @@ def get_public_ip():
 public_ip = get_public_ip()
 local_ip =  get_local_ip()
 print("Your local IP address is:", local_ip)
-print(public_ip)
+print("Your public IP address is :", public_ip)
 
 class ServerThread(QThread):
     new_message = pyqtSignal(str)
