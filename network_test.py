@@ -19,6 +19,6 @@ def register_with_tracker(tracker_ip, tracker_port, client_port):
 public_ip = get_public_ip()
 if public_ip:
     print(f"Public IP: {public_ip}")
-    register_with_tracker("107.181.177.182", 1234, 12345)  # Replace TRACKER_IP with the tracker server's IP address
+    register_with_tracker("137.189.241.64", 1234, 12345)  # Replace TRACKER_IP with the tracker server's IP address
 else:
     print("Could not get public IP")
