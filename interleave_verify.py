@@ -71,9 +71,14 @@ def interleave_images(node, image_names, chunk_size=1024):
     connected_nodes_ips = get_connected_nodes_ip_addresses(node)
     used_images = image_names[:len(connected_nodes_ips)]
 
-    for i, image_name in enumerate(used_images):
-        node_ip = connected_nodes_ips[i % len(connected_nodes_ips)]
-        node.request_chunk(node_ip, i, image_name)
+    for image_name in used_images:
+        image_size = os.path.getsize(image_name)
+        num_chunks = (image_size + chunk_size - 1) // chunk_size
+
+        for chunk_index in range(num_chunks):
+            node_ip = connected_nodes_ips[chunk_index % len(connected_nodes_ips)]
+            node.request_chunk(node_ip, chunk_index, image_name)
+
 
 
 public_ip = get_public_ip()
