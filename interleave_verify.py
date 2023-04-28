@@ -86,7 +86,7 @@ local_ip = get_local_ip()
 print("Your local IP address is:", local_ip)
 print("Your public IP address is :", public_ip)
 
-my_node = InterleavingNode(local_ip, 65432, 65433)
+my_node = InterleavingNode("", 65432, 65433)
 my_node.start()
 
 image_names = ["1-1.bmp", "1-2.bmp", "1-3.bmp"]
