@@ -77,7 +77,7 @@ def interleave_images(node, image_names, chunk_size=1024):
 
         for chunk_index in range(num_chunks):
             node_ip = connected_nodes_ips[chunk_index % len(connected_nodes_ips)]
-            node.request_chunk(node_ip, chunk_index, image_name)
+            node.request_chunk(node_ip, chunk_index, image_name, chunk_index)  # Include the chunk_index argument
 
 
 
