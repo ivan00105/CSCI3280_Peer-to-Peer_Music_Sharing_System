@@ -1,6 +1,6 @@
 """
 pip install pythonp2p pycryptodome
-Rename the folder in site-packages from crypto to Crypto.
+Rename the folder in site-packages from crypto to Crypto if Module not found error arises. 
 """
 from pythonp2p import Node  
 import socket
@@ -31,6 +31,7 @@ local_ip =  get_local_ip()
 print("Your local IP address is:", local_ip)
 print("Your public IP address is :", public_ip)
 class MyNode(Node):
+
     def on_message(self, message, sender, private):
         print(f"Message from {sender}: {message}")
 
