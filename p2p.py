@@ -1,69 +1,66 @@
 import socket
 import threading
+from time import sleep
 
-def get_local_ip():
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        ip_address = s.getsockname()[0]
-        s.close()
-        return ip_address
-    except Exception as e:
-        print("Error getting local IP address:", e)
-        return None
-
-local_ip =  get_local_ip()
-print("Your local IP address is:", local_ip)
-# List of peers (IP, port) - add more IPs as needed
 PEERS = [
-    (local_ip, 5000),
-    (local_ip, 5001),
+    ('172.20.10.10', 5000),
+    ('172.20.10.7', 5001),
 ]
 
-class SimpleP2P:
-    def __init__(self, ip, port, peers):
-        self.ip = ip
-        self.port = port
-        self.peers = peers
-        self.connections = []
+def get_my_address():
+    my_hostname = socket.gethostname()
+    my_ip = socket.gethostbyname(my_hostname)
+    
+    for peer in PEERS:
+        ip, port = peer
+        if ip == my_ip:
+            return ip, port
+            
+    raise Exception("My address not found in the PEERS list")
 
-        self.server_thread = threading.Thread(target=self.run_server)
-        self.server_thread.daemon = True
-        self.server_thread.start()
+def handle_connection(conn, addr):
+    print(f"Connected by {addr}")
+    conn.close()
 
-        self.connect_to_peers()
-
-    def run_server(self):
-        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server_socket.bind((self.ip, self.port))
-        server_socket.listen(5)
-
-        print(f"Server running on {self.ip}:{self.port}")
+def start_server(my_ip, my_port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind((my_ip, my_port))
+        s.listen(1)
+        print(f"Server started on {my_ip}:{my_port}")
 
         while True:
-            conn, addr = server_socket.accept()
-            self.connections.append(conn)
-            print(f"Connected to {addr}")
+            conn, addr = s.accept()
+            t = threading.Thread(target=handle_connection, args=(conn, addr))
+            t.start()
 
-    def connect_to_peers(self):
-        for peer in self.peers:
-            if peer != (self.ip, self.port):
-                try:
-                    peer_ip, peer_port = peer
-                    conn = socket.create_connection((peer_ip, peer_port))
-                    self.connections.append(conn)
-                    print(f"Connected to {peer_ip}:{peer_port}")
-                except:
-                    print(f"Failed to connect to {peer_ip}:{peer_port}")
+def connect_to_peer(peer):
+    ip, port = peer
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((ip, port))
+            print(f"Connected to {ip}:{port}")
+    except Exception as e:
+        print(f"Unable to connect to {ip}:{port}")
 
 def main():
+    my_ip, my_port = get_my_address()
 
-    p2p = SimpleP2P(local_ip, 5000, PEERS)
+    # Start the server thread
+    server_thread = threading.Thread(target=start_server, args=(my_ip, my_port))
+    server_thread.daemon = True
+    server_thread.start()
 
-    # Keep the program running
+    # Start threads to connect to each peer in the PEERS list, excluding your own IP
+    for peer in PEERS:
+        ip, _ = peer
+        if ip != my_ip:
+            t = threading.Thread(target=connect_to_peer, args=(peer,))
+            t.start()
+            sleep(1)
+
+    # Keep the main thread running
     while True:
-        pass
+        sleep(1)
 
 if __name__ == "__main__":
     main()
