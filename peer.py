@@ -21,8 +21,11 @@ class Peer:
             sock.connect((self.tracker_host, self.tracker_port))
             sock.sendall("GET_PEERS".encode())
             response = sock.recv(1024).decode()
-            self.peers = set(response.split(','))
-            print(f"Peers: {self.peers}")
+            new_peers = set(response.split(','))
+
+            if new_peers != self.peers:
+                self.peers = new_peers
+                print(f"Peers: {self.peers}")
 
     def start_server(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
