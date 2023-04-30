@@ -114,6 +114,8 @@ class MusicPlayer(QtWidgets.QMainWindow):
         self.update_thread = threading.Thread(target=self.update_peers_and_song_lists)
         self.update_thread.daemon = True
         self.update_thread.start()
+        self.received_song_list = []
+
 
         self.db_path = SqliteDB.db_path
         self.setting_path = 'config.json'
