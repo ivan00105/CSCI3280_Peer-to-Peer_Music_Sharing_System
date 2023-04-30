@@ -111,7 +111,8 @@ class AudioVisualizer(QMainWindow):
         # print(str)
         # print("inside stop")
         self.anim_running = False
-        self.ani.event_source.stop()
+        if self.ani.event_source is not None:
+            self.ani.event_source.stop()
 
     def resume_animation(self):
         # print("Resume animation called")
