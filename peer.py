@@ -24,11 +24,23 @@ class Peer:
             self.peers = set(response.split(','))
             print(f"Peers: {self.peers}")
 
-    # Other methods like connect_to_peer, start_server, etc. go here
-    # ...
+    def start_server(self):
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket.bind(("", self.port))
+        server_socket.listen(5)
+
+        while True:
+            client_socket, client_addr = server_socket.accept()
+            print(f"Connected to {client_addr}")
+            threading.Thread(target=self.handle_client, args=(client_socket,)).start()
+
+    def handle_client(self, client_socket):
+        # Your logic to handle client connections goes here
+        pass
+
 
 port = 12345
-tracker_host = "tracker_ip_address"  # Replace with the IP address of the machine running the tracker
+tracker_host = "172.20.10.7"  # Replace with the IP address of the machine running the tracker
 tracker_port = 50000
 peer = Peer(port, tracker_host, tracker_port)
 
