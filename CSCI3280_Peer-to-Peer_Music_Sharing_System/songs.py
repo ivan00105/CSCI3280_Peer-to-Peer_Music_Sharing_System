@@ -6,48 +6,32 @@ from mutagen import File
 import hashlib
 import binascii
 
-def hex_to_dec(hex_str, reverse=True):
+def hex_to_dec(hex_str: str, reverse: bool = True) -> int:
     """
     Convert a hexadecimal string to a decimal number.
     """
+    # Remove prefix "0X" if present
+    hex_str = hex_str.lstrip("0x").lstrip("0X")
+    # Reverse the string in pairs of two if requested
     if reverse:
-        # Remove the first two and last characters of the hex string
-        hex_str = str(hex_str)[2:-1]
-        # Reverse the string in pairs of two and join them
-        hex_str = ''.join(reversed([hex_str[i:i+2] for i in range(0, len(hex_str), 2)]))
-        # Add the prefix "0X" to make it a hex string
-        hex_str = "0X" + hex_str
-    else:
-        hex_str = hex_str
+        hex_str = "".join(reversed([hex_str[i:i+2] for i in range(0, len(hex_str), 2)]))
     # Convert the hex string to a decimal number
     dec_num = int(hex_str, 16)
     return dec_num
+
 
 def read_wav_file(filename, buffer_size=2**10*8):
     """
     Read the wave file and return its metadata.
     """
-    file_hash = hashlib.sha256()
-    info = dict()
+    info = {}
     with open(filename, mode="rb") as f:
-        # Read the first 12 bytes of the wave file
-        info.update({
-            "ChunkID": f.read(4),
-            "ChunkSize": hex_to_dec(binascii.hexlify(f.read(4))),
-            "Format": f.read(4),
-            "Subchunk1ID": f.read(4),
-            "Subchunk1Size": hex_to_dec(binascii.hexlify(f.read(4))),
-            "AudioFormat": hex_to_dec(binascii.hexlify(f.read(2))),
-            "NumChannels": hex_to_dec(binascii.hexlify(f.read(2))),
-            "SampleRate": hex_to_dec(binascii.hexlify(f.read(4))),
-            "ByteRate": hex_to_dec(binascii.hexlify(f.read(4))),
-            "BlockAlign": hex_to_dec(binascii.hexlify(f.read(2))),
-            "BitsPerSample": hex_to_dec(binascii.hexlify(f.read(2))),
-            "Subchunk2ID": f.read(4),
-            "Subchunk2Size": hex_to_dec(binascii.hexlify(f.read(4))),
-        })
-        # Read the audio data of the wave file
+        data = f.read(12)
+        keys = ["ChunkID", "ChunkSize", "Format", "Subchunk1ID", "Subchunk1Size", "AudioFormat", "NumChannels", "SampleRate", "ByteRate", "BlockAlign", "BitsPerSample", "Subchunk2ID", "Subchunk2Size"]
+        values = [data[0:4], int.from_bytes(data[4:8], byteorder="little"), data[8:12], data[12:16], int.from_bytes(data[16:20], byteorder="little"), int.from_bytes(data[20:22], byteorder="little"), int.from_bytes(data[22:24], byteorder="little"), int.from_bytes(data[24:28], byteorder="little"), int.from_bytes(data[28:32], byteorder="little"), int.from_bytes(data[32:34], byteorder="little"), int.from_bytes(data[34:36], byteorder="little"), data[36:40], int.from_bytes(data[40:44], byteorder="little")]
+        info.update(dict(zip(keys, values)))
         info["data"] = f.read(info["Subchunk2Size"])
+        file_hash = hashlib.sha256(info["data"]).hexdigest()
     return info
 
 
@@ -58,35 +42,44 @@ class Song:
         self.load_metadata()
 
     def reset_attributes(self):
-        self.title = self.artist = self.album = self.date = self.genre = 'None'
+        self.title = 'None'
+        self.artist = 'None'
+        self.album = 'None'
+        self.date = 'None'
+        self.genre = 'None'
         self.lyrics = ''
         self.cover = b''
-        self.sample_rate = self.bits_per_sample = self.bitrate = self.channels = self.length = 0
+        self.sample_rate = 0
+        self.bits_per_sample = 0
+        self.bitrate = 0
+        self.channels = 0
+        self.length = 0
         self.audio_type = ''
 
     def load_metadata(self):
         if not self.path:
             return
+    
+    filetype = self.path.split('.')[-1].lower()
+    
+    if filetype in ('wav', 'wave'):
+        self.audio_type = 'WAV'
+        wav_info = read_wav_file(self.path)
+        self.parse_wav_info(wav_info)
+        audio = WAVE(self.path)
+        self.parse_id3_tag(audio)
+    elif filetype == 'mp3':
+        self.audio_type = 'MP3'
+        audio = MP3(self.path)
+        self.parse_audio_info(audio.info)
+        self.parse_id3_tag(audio)
+    else:
+        self.audio_type = 'UNKNOWN'
+        audio = File(self.path)
+    
+    self.title = self.title or os.path.splitext(os.path.basename(self.path))[0]
+    self.load_lyrics()
 
-        filetype = self.path.split('.')[-1].lower()
-
-        if filetype in ['wav', 'wave']:
-            self.audio_type = 'WAV'
-            wav_info = read_wav_file(self.path)
-            self.parse_wav_info(wav_info)
-            audio = WAVE(self.path)
-            self.parse_id3_tag(audio)
-            self.title = self.title or os.path.splitext(os.path.basename(self.path))[0]
-        elif filetype == 'mp3':
-            self.audio_type = 'MP3'
-            audio = MP3(self.path)
-            self.parse_audio_info(audio.info)
-            self.parse_id3_tag(audio)
-        else:
-            self.audio_type = 'UNKNOWN'
-            audio = File(self.path)
-
-        self.load_lyrics()
 
     def get_lyrics_dictionary(self):
         if not self.lyrics:
@@ -144,12 +137,10 @@ class Song:
         self.channels = wav_info.get('NumChannels', 0)
         self.bits_per_sample = wav_info.get('BitsPerSample', 0)
         self.audio_type = 'WAV'
-
-        # Calculate the length of the song in seconds
         self.length = wav_info.get('Subchunk2Size', 0) / (self.sample_rate * self.channels * (self.bits_per_sample // 8))
 
-    def load_lyrics(self):
-        lyrics_path = os.path.splitext(self.path)[0] + '.lrc'
-        if not self.lyrics and os.path.exists(lyrics_path):
-            with open(lyrics_path, "r", encoding='utf-8', errors='ignore') as f:
-                self.lyrics = f.read()
+def load_lyrics(self):
+    lyrics_path = os.path.splitext(self.path)[0] + '.lrc'
+    if not self.lyrics and os.path.exists(lyrics_path):
+        with open(lyrics_path, encoding='utf-8', errors='ignore') as f:
+            self.lyrics = f.read()
