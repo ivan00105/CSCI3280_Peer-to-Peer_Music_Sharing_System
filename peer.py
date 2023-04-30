@@ -2,6 +2,7 @@ import socket
 import threading
 import time
 import json
+import pickle
 
 class Peer:
     def __init__(self, port, tracker_host, tracker_port, music_player):
@@ -67,17 +68,20 @@ class Peer:
                 sock.sendall(json.dumps(song_list).encode())
             except Exception as e:
                 print(f"Error sending song list: {e}")
-
-    def receive_song_list(self, peer_addr):
+                
+    def receive_song_list(self, addr):
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.connect(peer_addr)
-                data = sock.recv(4096)
-                song_list = json.loads(data.decode())
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(5)
+                s.connect(addr)
+                s.sendall(self.MSG_GET_SONG_LIST)
+                data = s.recv(4096)
+                song_list = pickle.loads(data)
                 return song_list
         except Exception as e:
             print(f"Error receiving song list: {e}")
-            return []
+            return None
+
 
 
 
