@@ -1,7 +1,7 @@
 import shutil
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import QCoreApplication, Qt, QUrl, QTimer, QPoint
-from PyQt5.QtGui import QPixmap, QFontDatabase
+from PyQt5.QtGui import QPixmap, QFontDatabase, QIcon
 from PyQt5 import QtCore
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtWidgets import QWidget, QListWidgetItem, QLabel, QLineEdit, QVBoxLayout, QLabel, QLineEdit, QListWidget
@@ -23,7 +23,8 @@ class MusicPlayer(QtWidgets.QMainWindow):
         super().__init__()
         self.ui = UI_MainWindow()
         self.ui.buildUiElements(self)
-        self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint | Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
+        self.setWindowFlags(
+            Qt.Window | Qt.WindowMinimizeButtonHint | Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
         self.setStyleSheet("background-color:transparent;")
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setMouseTracking(True)
@@ -66,13 +67,13 @@ class MusicPlayer(QtWidgets.QMainWindow):
         self.volume_smooth_low_mode = True
 
         self.media_player = QMediaPlayer(flags=QMediaPlayer.Flags())
-        self.song_path_playlist = [] 
-        self.local_path_list = []  
-        self.local_songs_count = 0  
-        self.directory_path = ''  
+        self.song_path_playlist = []
+        self.local_path_list = []
+        self.local_songs_count = 0
+        self.directory_path = ''
         self.song_current_path = ''
-        self.is_window_maximized = False  
-        self.volume_change_mode = 0  
+        self.is_window_maximized = False
+        self.volume_change_mode = 0
         self.sort_mode = 0
         self.is_started = False
         self.is_sliderPress = False
@@ -97,8 +98,8 @@ class MusicPlayer(QtWidgets.QMainWindow):
         self.ui.lyric_listWidget.verticalScrollBar().setSingleStep(15)
 
         self.thread_load_songs = Thread()
-        self.thread_load_songs.signal_item.connect(self.thread_search_num)
-        self.thread_load_songs.signal_stop.connect(self.thread_search_stop)
+        self.thread_load_songs.item_signal.connect(self.thread_search_num)
+        self.thread_load_songs.stop_signal.connect(self.thread_search_stop)
 
         self.db_path = SqliteDB.db_path
         self.setting_path = 'config.json'
@@ -141,7 +142,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
         }
         with open(self.setting_path, 'w') as f:
             json.dump(config, f)
-    
+
     def slider_move(self):
         self.ui.label_time_start.setText(self.ms_to_str(self.ui.hSlider.value()))
 
@@ -155,6 +156,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
 
     def lyrics_double_clicked(self):
         if len(self.lyric_time_list) != 0:
+            self.is_started = True
             print(f'Jump to{self.lyric_time_list[self.ui.lyric_listWidget.currentRow()]}')
             self.media_player.setPosition(self.lyric_time_list[self.ui.lyric_listWidget.currentRow()])
             self.lyric_time_index = 0
@@ -163,7 +165,6 @@ class MusicPlayer(QtWidgets.QMainWindow):
     def ms_to_str(ms):
         s, ms = divmod(ms, 1000)
         m, s = divmod(s, 60)
-        # h, m = divmod(m, 60)
         return f'{str(m).zfill(2)}:{str(s).zfill(2)}'
 
     def song_timer(self):
@@ -184,31 +185,31 @@ class MusicPlayer(QtWidgets.QMainWindow):
 
         self.ui.hSlider.setMaximum(self.media_player.duration())
         self.ui.hSlider.setMinimum(0)
-        
+
         if not self.is_sliderPress:
             self.ui.hSlider.setValue(self.media_player.position())
-        
+
         if self.media_player.position() == self.media_player.duration():
             print('Time over')
             self.play_next()
 
     def volume_smooth_timeout(self):
-        volume = self.volume_buffer  
-        if volume == 0: 
+        volume = self.volume_buffer
+        if volume == 0:
             self.volume_smooth_timer.stop()
         else:
-            volume_step = volume/100  
+            volume_step = volume / 500
             self.volume_add_buffer += volume_step
-            if self.volume_add_buffer > 1: 
+            if self.volume_add_buffer > 1:
                 self.volume_add_buffer -= 1
-                if self.volume_smooth_low_mode: 
+                if self.volume_smooth_low_mode:
                     if self.media_player.volume() - 1 >= 0:
                         self.media_player.setVolume(self.media_player.volume() - 1)
                     else:
                         self.pause_music()
                         self.volume_smooth_timer.stop()
                         self.media_player.setVolume(volume)
-                else:  
+                else:
                     if self.media_player.volume() + 1 <= volume:
                         self.media_player.setVolume(self.media_player.volume() + 1)
                     else:
@@ -237,7 +238,6 @@ class MusicPlayer(QtWidgets.QMainWindow):
     def volume_style_refresh(self):
         volume = self.media_player.volume()
 
-
     def change_volume(self):
         volume = self.media_player.volume()
         if volume == 0:
@@ -264,20 +264,19 @@ class MusicPlayer(QtWidgets.QMainWindow):
             text = 'Sort by creation time'
 
     def set_play_mode(self):
-        if self.play_mode == 0:  
+        if self.play_mode == 0:
             self.song_path_playlist.sort(key=lambda x: x['index'])
             if self.song_current_path != '':
                 for item in self.song_path_playlist:
                     if item['path'] == self.song_current_path:
                         self.song_index = self.song_path_playlist.index(item)
-        elif self.play_mode == 1:  
+        elif self.play_mode == 1:
             pass
-        elif self.play_mode == 2:  
+        elif self.play_mode == 2:
             random.shuffle(self.song_path_playlist)
 
     def set_play_mode_stylesheet(self):
         return
-
 
     def close_window(self):
         self.save_config()
@@ -316,7 +315,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
             for item in items:
                 file_path = f'{root}/{item}'
                 suffix = file_path.split('.')[-1].lower()
-                suffix_limit = ['wav', 'wave', 'mp3'] 
+                suffix_limit = ['wav', 'wave', 'mp3']
                 if suffix not in suffix_limit:
                     continue
                 path_list.append(file_path)
@@ -364,8 +363,15 @@ class MusicPlayer(QtWidgets.QMainWindow):
         self.song_path_list = []
         count = 0
         for item in result:
-            
-            self.ui.playlist_listWidget.addItem(item['title'] + '\n- ' + item['artist'])
+            # Assuming 'icon_path' is the path to the icon file
+            icon = QIcon("images/local.png")
+            item_text = f"{item['title']}\n- {item['artist']}"
+            item_w = QListWidgetItem()
+            item_w.setText(item_text)
+            item_w.setIcon(icon)
+            self.ui.playlist_listWidget.addItem(item_w)
+            # self.ui.playlist_listWidget.addItem(item['title'] + '\n- ' + item['artist'])
+
             self.song_path_list.append({
                 'index': count,
                 'path': item['path']
@@ -422,24 +428,29 @@ class MusicPlayer(QtWidgets.QMainWindow):
 
                 QtWidgets.QMessageBox.information(self, "datebase updated", QtWidgets.QMessageBox.Ok)
 
+
     def song_start_switch(self):
         if self.song_current_path == '' and self.local_songs_count != 0:
             self.play_next()
             return
         elif self.song_current_path == '':
             return
+        print("calling song start")
+
 
         self.volume_buffer = self.media_player.volume()
         self.volume_add_buffer = 0
         if self.is_started is True:
-            # self.song_pause()
-            self.volume_smooth_low_mode = True
-            self.volume_smooth_timer.start(1)
+            self.audio_visualizer.stop_animation()
+            self.pause_music()
+            # self.volume_smooth_low_mode = True
+            # self.volume_smooth_timer.start(1)
         else:
+            self.audio_visualizer.resume_animation()
             self.volume_smooth_low_mode = False
-            self.media_player.setVolume(0)
+            # self.media_player.setVolume(0)
             self.play_music()
-            self.volume_smooth_timer.start(1)
+            # self.volume_smooth_timer.start(1)
 
     def song_find(self):
         flag = False
@@ -458,7 +469,8 @@ class MusicPlayer(QtWidgets.QMainWindow):
     def save_playlist(self):
         self.song_path_playlist = self.song_path_list.copy()
         self.set_play_mode()
-        QtWidgets.QMessageBox.information(self, "save successfully", 'the playlist has been replaced', QtWidgets.QMessageBox.Ok)
+        QtWidgets.QMessageBox.information(self, "save successfully", 'the playlist has been replaced',
+                                          QtWidgets.QMessageBox.Ok)
 
     def song_double_clicked(self):
         song_index = self.ui.playlist_listWidget.currentRow()
@@ -514,48 +526,18 @@ class MusicPlayer(QtWidgets.QMainWindow):
         print('Play')
         self.ui.btn_play.setToolTip('Pause')
         self.ui.btn_play.setStyleSheet("image: url(images/pause.png);")
+        # AudioVisualizer.resume_animation(self)
 
     def pause_music(self):
+        # a = AudioVisualizer(self.song_selected.path)
+        # AudioVisualizer.stop_animation(a,"sooraj")
         self.media_player.pause()
         self.lyric_timer.stop()
         self.is_started = False
         print('Pause')
         self.ui.btn_play.setToolTip('Play')
         self.ui.btn_play.setStyleSheet("image: url(images/play.png);")
-        
-    def song_start_switch(self):
-        if self.song_current_path == '' and self.local_songs_count != 0:
-            self.play_next()
-            return
-        elif self.song_current_path == '':
-            return
 
-        self.volume_buffer = self.media_player.volume()
-        self.volume_add_buffer = 0
-        if self.is_started is True:
-            self.pause_music()
-            self.volume_smooth_low_mode = True
-            self.volume_smooth_timer.start(1)
-        else:
-            self.volume_smooth_low_mode = False
-            self.media_player.setVolume(0)
-            self.play_music()
-            self.volume_smooth_timer.start(1)
-    
-    """
-    new code
-    """
-    def song_start_switch(self):
-        if self.song_current_path == '' and self.local_songs_count != 0:
-            self.play_next()
-            return
-        elif self.song_current_path == '':
-            return
-
-        if self.is_started is True:
-            self.pause_music()
-        else:
-            self.play_music()
 
     def initialize_lyrics(self):
         self.lyric_time_index = 0
@@ -592,13 +574,27 @@ class MusicPlayer(QtWidgets.QMainWindow):
         self.vis_label.setStyleSheet("color: white; font: 18pt; font-weight:bold")
         self.vis_label.setAlignment(QtCore.Qt.AlignCenter)
 
-        self.vis_layout = QtWidgets.QVBoxLayout(self.ui.widget_vis)
-        self.vis_layout.setObjectName("visualization")
-        self.audio_visualizer = AudioVisualizer(self.song_selected.path)
-        self.audio_visualizer.setMinimumSize(QtCore.QSize(300,300))
-        self.audio_visualizer.setGeometry(QtCore.QRect(0, 0, 300, 300))
-        self.vis_layout.addWidget(self.vis_label)
-        self.vis_layout.addWidget(self.audio_visualizer)
+        # self.vis_layout = QtWidgets.QVBoxLayout(self.ui.widget_vis)
+        # self.vis_layout.setObjectName("visualization")
+        # self.audio_visualizer = AudioVisualizer(self.song_selected.path)
+        # self.audio_visualizer.setMinimumSize(QtCore.QSize(300, 300))
+        # self.audio_visualizer.setGeometry(QtCore.QRect(0, 0, 300, 300))
+        # self.vis_layout.addWidget(self.vis_label)
+        # self.vis_layout.addWidget(self.audio_visualizer)
+
+        """
+        new code
+        """
+        if not hasattr(self, "audio_visualizer"):
+            self.vis_layout = QtWidgets.QVBoxLayout(self.ui.widget_vis)
+            self.vis_layout.setObjectName("visualization")
+            self.audio_visualizer = AudioVisualizer(self.song_selected.path)
+            self.audio_visualizer.setMinimumSize(QtCore.QSize(300, 300))
+            self.audio_visualizer.setGeometry(QtCore.QRect(0, 0, 300, 300))
+            self.vis_layout.addWidget(self.vis_label)
+            self.vis_layout.addWidget(self.audio_visualizer)
+        else:
+            self.audio_visualizer.update_audio_file(self.song_selected.path)
 
         self.setWindowTitle(self.song_selected.title + ' - ' + self.song_selected.artist + ' - LrcMusicPlayer')
 
@@ -668,7 +664,8 @@ class MusicPlayer(QtWidgets.QMainWindow):
         btn_widget = QWidget()
         btn_layout = QtWidgets.QHBoxLayout()
         save_info_btn = QtWidgets.QPushButton("Save Changes")
-        save_info_btn.setStyleSheet("background:rgb(245, 36, 67);border-radius:5px;font: 9pt;color: rgb(255, 250, 232);font-weight:bold")
+        save_info_btn.setStyleSheet(
+            "background:rgb(245, 36, 67);border-radius:5px;font: 9pt;color: rgb(255, 250, 232);font-weight:bold")
         save_info_btn.setFixedWidth(150)
         save_info_btn.setFixedHeight(30)
         btn_layout.addWidget(save_info_btn, alignment=QtCore.Qt.AlignCenter)
@@ -693,48 +690,59 @@ class MusicPlayer(QtWidgets.QMainWindow):
                 f'{self.song_selected.bits_per_sample} bits / '
                 f'{self.song_selected.audio_type}'
             )
-    
+
 
 class Thread(QtCore.QThread):
-    signal_stop = QtCore.pyqtSignal()
-    signal_item = QtCore.pyqtSignal(int)
+    stop_signal = QtCore.pyqtSignal()
+    item_signal = QtCore.pyqtSignal(int)
 
     def __init__(self):
         super().__init__()
-        self.directory_path = ''
+        self.folder_path = ''
 
     def run(self):
-        self.generate_song_table()
+        self.create_songs_table()
 
-    def generate_song_table(self):
-        with SqliteDB() as us:
-            us.cursor.execute("drop table if exists music_info")
-            us.cursor.execute("""
-            create table if not exists music_info (
-            id integer primary key autoincrement, 
-            file_name text, path text, title text, artist text, album text, date text, genre text,
-            mtime int, ctime int
+    def process_file(self, current_file_path, current_file_name):
+        file_extension = current_file_path.split('.')[-1].lower()
+        allowed_extensions = ['wav', 'wave', 'mp3']
+        if file_extension not in allowed_extensions:
+            return
+
+        song_instance = Song(current_file_path)
+        insert_query = """
+        insert into music_info (file_name, path, title, artist, album, date, genre, mtime, ctime) 
+        values (?,?,?,?,?,?,?,?,?)
+        """
+        modification_time = int(os.path.getmtime(current_file_path))
+        creation_time = int(os.path.getctime(current_file_path))
+        query_params = (current_file_name, song_instance.path, song_instance.title,
+                        song_instance.artist, song_instance.album, song_instance.date,
+                        song_instance.genre, modification_time, creation_time)
+
+        return insert_query, query_params
+    
+    def create_songs_table(self):
+        with SqliteDB() as db:
+            db.cursor.execute("DROP TABLE IF EXISTS music_info")
+            db.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS music_info (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            file_name TEXT, path TEXT, title TEXT, artist TEXT, album TEXT, date TEXT, genre TEXT,
+            mtime INT, ctime INT
             )""")
 
-            file_num = 0
-            for root, dirs, items in os.walk(self.directory_path):
-                for item in items:
-                    file_path = f'{root}/{item}'
-                    file_name = os.path.splitext(item)[0]
-                    suffix = file_path.split('.')[-1].lower()
-                    suffix_limit = ['wav', 'wave', 'mp3']
-                    if suffix not in suffix_limit:
-                        continue
-                    song = Song(file_path)
-                    sql = """
-                    insert into music_info (file_name, path, title, artist, album, date, genre, mtime, ctime) 
-                    values (?,?,?,?,?,?,?,?,?)
-                    """
-                    get_mtime = int(os.path.getmtime(file_path))
-                    get_ctime = int(os.path.getctime(file_path))
-                    params = (file_name, song.path, song.title, song.artist, song.album, song.date, song.genre,
-                              get_mtime, get_ctime)
-                    us.cursor.execute(sql, params)
-                    file_num += 1
-                    self.signal_item.emit(file_num)
-        self.signal_stop.emit()
+            file_count = 0
+            for root, dirs, files in os.walk(self.directory_path):
+                for file in files:
+                    current_file_path = f'{root}/{file}'
+                    current_file_name = os.path.splitext(file)[0]
+
+                    result = self.process_file(current_file_path, current_file_name)
+                    if result:
+                        query, params = result
+                        db.cursor.execute(query, params)
+                        file_count += 1
+                        self.item_signal.emit(file_count)
+        self.stop_signal.emit()
+

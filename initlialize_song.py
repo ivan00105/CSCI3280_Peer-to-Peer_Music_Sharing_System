@@ -149,7 +149,6 @@ class InitializeData(QtWidgets.QMainWindow):
 
 
 
-
     def song_lrc_init(self, song_selected):
         self.lrc_time_index = 0
         self.ui.lyric_listWidget.clear()
@@ -163,10 +162,8 @@ class InitializeData(QtWidgets.QMainWindow):
 
                 item = QListWidgetItem(lrc_output)
                 item.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-                #item.setForeground(QColor("#FFFFFF"))
                 self.ui.lyric_listWidget.addItem(item)
         else:
             item = QListWidgetItem('There are no lyrics')
             item.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-            #item.setForeground(QColor("#FFFFFF"))
             self.ui.lyric_listWidget.addItem(item)

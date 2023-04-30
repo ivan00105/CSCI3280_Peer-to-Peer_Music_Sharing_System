@@ -207,7 +207,7 @@ class UI_MainWindow(object):
         self.widget_bottom = QtWidgets.QWidget(self.widget)
         self.widget_bottom.setMinimumSize(QtCore.QSize(0, 120))
         self.widget_bottom.setMaximumSize(QtCore.QSize(16777215, 120))
-        self.widget_bottom.setStyleSheet("background:rgb(99, 5, 5);border-bottom-right-radius:10px;border-bottom-left-radius:10px;")
+        self.widget_bottom.setStyleSheet("background:rgb(245, 36, 67);border-bottom-right-radius:10px;border-bottom-left-radius:10px;")
         self.widget_bottom.setObjectName("widget_bottom")
         self.horizontalLayout_6 = QtWidgets.QHBoxLayout(self.widget_bottom)
         self.horizontalLayout_6.setContentsMargins(10, 5, 10, 5)

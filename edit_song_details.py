@@ -1,5 +1,7 @@
 import os
 from PyQt5 import QtWidgets
+
+import edit_mp3
 from player_window import UI_MainWindow
 from pydub import AudioSegment
 
@@ -11,6 +13,7 @@ class EditFile(QtWidgets.QMainWindow):
         self.ui.buildUiElements(self)
 
     def edit_audio_details(self, song_selected):
+            print("inside edit")
             selected_audio_file = song_selected
             new_title = self.ui.title_edit.text()
             new_artist = self.ui.artist_edit.text()
@@ -21,7 +24,7 @@ class EditFile(QtWidgets.QMainWindow):
                 old_file_path = selected_audio_file.path
                 extension = os.path.splitext(old_file_path)[1].lower()
                 if extension == ".mp3":
-                    format = "mp3"
+                    edit_mp3.rename_audio_file(old_file_path, new_title)
                 elif extension in [".wav", ".wave"]:
                     format = "wav"
                 else:
@@ -29,6 +32,7 @@ class EditFile(QtWidgets.QMainWindow):
                     return
                 new_file_path = os.path.dirname(old_file_path) + '/' + new_title + extension
                 new_lyrics_path = os.path.dirname(old_file_path) + '/' + new_title + '.lrc'
+
                 audio = AudioSegment.from_file(old_file_path, format=format)
 
                 # Update metadata
