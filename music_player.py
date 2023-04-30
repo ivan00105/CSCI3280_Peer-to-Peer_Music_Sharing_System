@@ -581,15 +581,30 @@ class MusicPlayer(QtWidgets.QMainWindow):
 
     """networking part"""
     def send_local_song_list_to_peers(self):
-        for peer in self.peer.peers:
-            peer_addr = tuple(peer.split(':'))
-            self.peer.send_song_list(self.song_path_list, peer_addr)
+        for peer_addr in self.peer.peers:
+            ip, port_str = peer_addr.split(':')
+            port = int(port_str)
+            self.peer.send_song_list(self.song_path_list, (ip, port))
             
     def update_peers_and_song_lists(self):
         while True:
-            self.peer.get_peers_from_tracker()
-            self.send_local_song_list_to_peers()
-            time.sleep(60)  # Update every minute
+            new_peers = self.peer.get_peers_from_tracker()
+            if new_peers:
+                self.peer.peers = list(set(new_peers))  # Update peers and remove duplicates
+
+            self.received_song_list.clear()  # Clear the list before updating
+
+            for peer_addr in self.peer.peers:
+                ip, port_str = peer_addr.split(':')
+                port = int(port_str)
+                received_songs = self.peer.get_song_list((ip, port))
+
+                if received_songs:
+                    self.received_song_list.extend(received_songs)
+
+            self.select_songs(self.ui.search_lineEdit.text())
+            time.sleep(10)
+
             
     def update_merged_song_list(self, received_song_list):
         # Merge the received song list with the local song list
