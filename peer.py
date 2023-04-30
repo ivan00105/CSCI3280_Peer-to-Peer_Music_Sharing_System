@@ -22,7 +22,6 @@ class Peer:
         except TimeoutError:
             print("Failed to connect to the tracker. The application will work in offline mode.")
 
-
     def get_peers_from_tracker(self):
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -34,11 +33,13 @@ class Peer:
                 if new_peers != self.peers:
                     self.peers = new_peers
                     print(f"Peers: {self.peers}")
+
+                # Send a heartbeat signal to the tracker
+                sock.sendall("REGISTER".encode())
         except TimeoutError:
             print("Failed to connect to the tracker. The application will work in offline mode.")
         except Exception as e:
             print(f"Error getting peers from tracker: {e}")
-
 
     def start_server(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -60,12 +61,16 @@ class Peer:
         self.select_songs(self.current_search_text)
     
     def send_song_list(self, song_list, peer_addr):
+        ip, port_str = peer_addr.split(':')
+        port = int(port_str)
+
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             try:
-                sock.connect(peer_addr)
+                sock.connect((ip, port))
                 sock.sendall(json.dumps(song_list).encode())
             except Exception as e:
                 print(f"Error sending song list: {e}")
+
 
 
     def receive_song_list(self, client_socket):

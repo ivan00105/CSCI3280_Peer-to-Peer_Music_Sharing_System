@@ -18,6 +18,7 @@ class Tracker:
         self.host = host
         self.port = port
         self.peers = set()
+        self.peer_timestamps = {}
 
     def start(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
@@ -30,8 +31,12 @@ class Tracker:
                     data = client_socket.recv(1024).decode()
                     if data == "REGISTER":
                         self.peers.add(client_addr)
+                        self.peer_timestamps[client_addr] = time.time()
                         response = "OK"
                     elif data == "GET_PEERS":
+                        # Remove peers that have timed out (e.g., 2 minutes)
+                        current_time = time.time()
+                        self.peers = {peer for peer in self.peers if current_time - self.peer_timestamps[peer] < 120}
                         response = ','.join([f"{addr[0]}:{addr[1]}" for addr in self.peers])
                     else:
                         response = "INVALID_COMMAND"
