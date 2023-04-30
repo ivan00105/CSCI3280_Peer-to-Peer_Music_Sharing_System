@@ -18,7 +18,7 @@ from edit_song_details import EditFile
 from peer import Peer
 
 import threading
-
+import time
 class MusicPlayer(QtWidgets.QMainWindow):
 
     def __init__(self):
@@ -103,17 +103,17 @@ class MusicPlayer(QtWidgets.QMainWindow):
         self.thread_load_songs.item_signal.connect(self.thread_search_num)
         self.thread_load_songs.stop_signal.connect(self.thread_search_stop)
 
-        # network
-        self.peer = Peer(12345, "172.20.10.7", 50000)
-
+        """network"""
+        self.peer = Peer(12345, "172.20.10.7", 50000, self)
         self.register_thread = threading.Thread(target=self.peer.register_with_tracker)
         self.register_thread.daemon = True
         self.register_thread.start()
-
         self.server_thread = threading.Thread(target=self.peer.start_server)
         self.server_thread.daemon = True
         self.server_thread.start()
-
+        self.update_thread = threading.Thread(target=self.update_peers_and_song_lists)
+        self.update_thread.daemon = True
+        self.update_thread.start()
 
         self.db_path = SqliteDB.db_path
         self.setting_path = 'config.json'
@@ -363,36 +363,42 @@ class MusicPlayer(QtWidgets.QMainWindow):
             if item['title'] == 'None':
                 item['title'] = item['file_name']
 
+        # Combine local and received songs
+        all_songs = result + self.received_song_list
+
+        # Sort the combined song list based on the chosen sort mode
         if self.sort_mode == 0:
-            # sort by pinyin/alpha beta
-            result = sorted(result, key=lambda x: ''.join(lazy_pinyin(x['title'], style=Style.TONE3)).lower())
+            all_songs = sorted(all_songs, key=lambda x: ''.join(lazy_pinyin(x['title'], style=Style.TONE3)).lower())
         elif self.sort_mode == 1:
-            # sort by modify time
-            result = sorted(result, key=lambda x: x['mtime'], reverse=True)
+            all_songs = sorted(all_songs, key=lambda x: x['mtime'], reverse=True)
         elif self.sort_mode == 2:
-            # sort by creat time
-            result = sorted(result, key=lambda x: x['ctime'], reverse=True)
+            all_songs = sorted(all_songs, key=lambda x: x['ctime'], reverse=True)
+
         self.ui.playlist_listWidget.clear()
         self.song_path_list = []
         count = 0
-        for item in result:
-            # Assuming 'icon_path' is the path to the icon file
-            icon = QIcon("images/local.png")
+        for item in all_songs:
+            if item.get('is_local', True):
+                icon_path = "images/local.png"
+            else:
+                icon_path = "images/cloud.png"
+
+            icon = QIcon(icon_path)
             item_text = f"{item['title']}\n- {item['artist']}"
             item_w = QListWidgetItem()
             item_w.setText(item_text)
             item_w.setIcon(icon)
             self.ui.playlist_listWidget.addItem(item_w)
-            # self.ui.playlist_listWidget.addItem(item['title'] + '\n- ' + item['artist'])
 
             self.song_path_list.append({
                 'index': count,
                 'path': item['path']
             })
             count += 1
+
         self.local_songs_count = count
-        #network
         self.send_local_song_list_to_peers()
+
 
     def update_songs_list(self):
 
@@ -576,6 +582,25 @@ class MusicPlayer(QtWidgets.QMainWindow):
         for peer in self.peer.peers:
             peer_addr = tuple(peer.split(':'))
             self.peer.send_song_list(self.song_path_list, peer_addr)
+            
+    def update_peers_and_song_lists(self):
+        while True:
+            self.peer.get_peers_from_tracker()
+            self.send_local_song_list_to_peers()
+            time.sleep(60)  # Update every minute
+            
+    def update_merged_song_list(self, received_song_list):
+        # Merge the received song list with the local song list
+        for song in received_song_list:
+            if song not in self.song_path_list:
+                self.song_path_list.append(song)
+
+        # Update the user interface or any other components that depend on the song list
+        # For example, if you have a listbox displaying the songs, you should update it here
+        self.update_song_list_ui()
+
+    def update_song_list_ui(self):
+        self.select_songs(self.current_search_text)
 
     def initialize_song_data(self):
         self.song_selected = Song(self.song_current_path)
