@@ -115,6 +115,9 @@ class MusicPlayer(QtWidgets.QMainWindow):
         self.update_thread.daemon = True
         self.update_thread.start()
         self.received_song_list = []
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_peers_and_song_lists)
+        self.timer.start(5000)  # Call update_peers_and_song_lists every 5 seconds
 
 
         self.db_path = SqliteDB.db_path
