@@ -15,7 +15,9 @@ from database import SqliteDB
 from player_window import UI_MainWindow
 from songs import Song
 from edit_song_details import EditFile
+from peer import Peer
 
+import threading
 
 class MusicPlayer(QtWidgets.QMainWindow):
 
@@ -100,6 +102,18 @@ class MusicPlayer(QtWidgets.QMainWindow):
         self.thread_load_songs = Thread()
         self.thread_load_songs.item_signal.connect(self.thread_search_num)
         self.thread_load_songs.stop_signal.connect(self.thread_search_stop)
+
+        # network
+        self.peer = Peer(12345, "172.20.10.7", 50000)
+
+        self.register_thread = threading.Thread(target=self.peer.register_with_tracker)
+        self.register_thread.daemon = True
+        self.register_thread.start()
+
+        self.server_thread = threading.Thread(target=self.peer.start_server)
+        self.server_thread.daemon = True
+        self.server_thread.start()
+
 
         self.db_path = SqliteDB.db_path
         self.setting_path = 'config.json'
@@ -358,7 +372,6 @@ class MusicPlayer(QtWidgets.QMainWindow):
         elif self.sort_mode == 2:
             # sort by creat time
             result = sorted(result, key=lambda x: x['ctime'], reverse=True)
-
         self.ui.playlist_listWidget.clear()
         self.song_path_list = []
         count = 0
@@ -378,6 +391,8 @@ class MusicPlayer(QtWidgets.QMainWindow):
             })
             count += 1
         self.local_songs_count = count
+        #network
+        self.send_local_song_list_to_peers()
 
     def update_songs_list(self):
 
@@ -555,6 +570,12 @@ class MusicPlayer(QtWidgets.QMainWindow):
             item = QListWidgetItem('There are no lyrics')
             item.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
             self.ui.lyric_listWidget.addItem(item)
+
+    """networking part"""
+    def send_local_song_list_to_peers(self):
+        for peer in self.peer.peers:
+            peer_addr = tuple(peer.split(':'))
+            self.peer.send_song_list(self.song_path_list, peer_addr)
 
     def initialize_song_data(self):
         self.song_selected = Song(self.song_current_path)

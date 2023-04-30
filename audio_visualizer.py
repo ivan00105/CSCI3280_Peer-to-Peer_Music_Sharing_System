@@ -83,7 +83,6 @@ class AudioVisualizer(QMainWindow):
         self.ani.event_source.start()
 
     def audio_callback(self, frame):
-        # print(f"anim_running: {self.anim_running}")
         if not self.anim_running:
             return
 
@@ -93,7 +92,10 @@ class AudioVisualizer(QMainWindow):
 
         # Get the audio data that corresponds to the current block
         block = self.data[start:end, 0]
-        # print(block)
+
+        # Pad the block with zeros if its length is less than the blocksize
+        if len(block) < self.blocksize:
+            block = np.pad(block, (0, self.blocksize - len(block)))
 
         # Update the plot with the latest audio data
         self.line.set_ydata(block)
