@@ -69,7 +69,7 @@ class AudioVisualizer(QMainWindow):
         self.line, = self.ax.plot(np.zeros(self.blocksize), color='red')
         # Create an animation for updating the plot
         self.ani = animation.FuncAnimation(self.figure, self.audio_callback, frames=self.total_frames(),
-                                           repeat=False, blit=False, interval=0)
+                                   repeat=False, blit=False, interval=10)
 
     def total_frames(self):
         return len(self.data) // self.blocksize
@@ -80,7 +80,8 @@ class AudioVisualizer(QMainWindow):
 
         # Reset the animation
         self.anim_running = True
-        self.ani.event_source.start()
+        if self.ani.event_source is not None:
+            self.ani.event_source.start()
 
     def audio_callback(self, frame):
         if not self.anim_running:
@@ -118,7 +119,8 @@ class AudioVisualizer(QMainWindow):
         # print("Resume animation called")
         self.anim_running = True
         # print(self.anim_running)
-        self.ani.event_source.start()
+        if self.ani.event_source is not None:
+            self.ani.event_source.start()
 
 # if __name__ == '__main__':
 #     app = QApplication(sys.argv)
