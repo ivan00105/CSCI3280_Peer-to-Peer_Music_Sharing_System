@@ -51,8 +51,7 @@ class Peer:
             client_socket, client_addr = server_socket.accept()
             print(f"Connected to {client_addr}")
             threading.Thread(target=self.handle_client, args=(client_socket,)).start()
-            time.sleep(1)  # Add this line
-
+            time.sleep(1)
 
     def handle_client(self, client_socket):
         song_list = self.receive_song_list(client_socket)
@@ -63,11 +62,12 @@ class Peer:
     def update_received_song_list(self, received_song_list):
         self.received_song_list = received_song_list
         self.select_songs(self.current_search_text)
-    
+        
     def send_song_list(self, song_list, peer_addr):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             try:
-                sock.connect(peer_addr)
+                host, port = peer_addr.split(':')
+                sock.connect((host, int(port)))
                 sock.sendall(json.dumps(song_list).encode())
             except Exception as e:
                 print(f"Error sending song list: {e}")
