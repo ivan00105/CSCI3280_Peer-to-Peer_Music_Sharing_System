@@ -597,7 +597,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
             for peer_addr in self.peer.peers:
                 ip, port_str = peer_addr.split(':')
                 port = int(port_str)
-                received_songs = self.peer.get_song_list((ip, port))
+                received_songs = self.peer.receive_song_list((ip, port))
 
                 if received_songs:
                     self.received_song_list.extend(received_songs)

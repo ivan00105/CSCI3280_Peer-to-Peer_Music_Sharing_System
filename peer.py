@@ -68,14 +68,17 @@ class Peer:
             except Exception as e:
                 print(f"Error sending song list: {e}")
 
-    def receive_song_list(self, client_socket):
+    def receive_song_list(self, peer_addr):
         try:
-            data = client_socket.recv(4096)
-            song_list = json.loads(data.decode())
-            return song_list
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                sock.connect(peer_addr)
+                data = sock.recv(4096)
+                song_list = json.loads(data.decode())
+                return song_list
         except Exception as e:
             print(f"Error receiving song list: {e}")
             return []
+
 
 
 
