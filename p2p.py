@@ -1,66 +1,59 @@
 import socket
 import threading
-from time import sleep
 
-PEERS = [
-    ('172.20.10.10', 5000),
-    ('172.20.10.7', 5001),
-]
+class Peer:
+    def __init__(self, port, broadcast_port):
+        self.port = port
+        self.broadcast_port = broadcast_port
+        self.peers = set()
 
-def get_my_address():
-    my_hostname = socket.gethostname()
-    my_ip = socket.gethostbyname(my_hostname)
-    
-    for peer in PEERS:
-        ip, port = peer
-        if ip == my_ip:
-            return ip, port
-            
-    raise Exception("My address not found in the PEERS list")
+    # Discover peers, connect to peers, and handle incoming connections methods go here
+    def discover_peers(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            message = f"{socket.gethostbyname(socket.gethostname())}:{self.port}"
+            sock.sendto(message.encode(), ('255.255.255.255', self.broadcast_port))
 
-def handle_connection(conn, addr):
-    print(f"Connected by {addr}")
-    conn.close()
+    def listen_broadcasts(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.bind(("", self.broadcast_port))
 
-def start_server(my_ip, my_port):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind((my_ip, my_port))
-        s.listen(1)
-        print(f"Server started on {my_ip}:{my_port}")
+            while True:
+                data, addr = sock.recvfrom(1024)
+                peer = data.decode()
+                if peer != f"{socket.gethostbyname(socket.gethostname())}:{self.port}":
+                    self.peers.add(peer)
+                print(f"Current peers: {self.peers}")
+                
+    def connect_to_peer(self, peer_host, peer_port):
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.connect((peer_host, peer_port))
+        # Your logic to communicate with the connected peer goes here
+
+    def start_server(self):
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket.bind(("", self.port))
+        server_socket.listen(5)
 
         while True:
-            conn, addr = s.accept()
-            t = threading.Thread(target=handle_connection, args=(conn, addr))
-            t.start()
+            client_socket, client_addr = server_socket.accept()
+            print(f"Connected to {client_addr}")
+            threading.Thread(target=self.handle_client, args=(client_socket,)).start()
 
-def connect_to_peer(peer):
-    ip, port = peer
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((ip, port))
-            print(f"Connected to {ip}:{port}")
-    except Exception as e:
-        print(f"Unable to connect to {ip}:{port}")
+    def handle_client(self, client_socket):
+        # Your logic to handle client connections goes here
+        pass
 
-def main():
-    my_ip, my_port = get_my_address()
 
-    # Start the server thread
-    server_thread = threading.Thread(target=start_server, args=(my_ip, my_port))
-    server_thread.daemon = True
-    server_thread.start()
+port = 12345
+broadcast_port = 50000
+peer = Peer(port, broadcast_port)
 
-    # Start threads to connect to each peer in the PEERS list, excluding your own IP
-    for peer in PEERS:
-        ip, _ = peer
-        if ip != my_ip:
-            t = threading.Thread(target=connect_to_peer, args=(peer,))
-            t.start()
-            sleep(1)
+server_thread = threading.Thread(target=peer.start_server)
+server_thread.start()
 
-    # Keep the main thread running
-    while True:
-        sleep(1)
+broadcast_listener_thread = threading.Thread(target=peer.listen_broadcasts)
+broadcast_listener_thread.start()
 
-if __name__ == "__main__":
-    main()
+while True:
+    peer.discover_peers()
