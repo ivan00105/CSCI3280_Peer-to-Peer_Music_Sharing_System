@@ -1,5 +1,7 @@
 import socket
 import threading
+import time
+
 
 class Peer:
     def __init__(self, port, tracker_host, tracker_port):
@@ -18,14 +20,17 @@ class Peer:
 
     def get_peers_from_tracker(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.connect((self.tracker_host, self.tracker_port))
-            sock.sendall("GET_PEERS".encode())
-            response = sock.recv(1024).decode()
-            new_peers = set(response.split(','))
+            try:
+                sock.connect((self.tracker_host, self.tracker_port))
+                sock.sendall("GET_PEERS".encode())
+                response = sock.recv(1024).decode()
+                new_peers = set(response.split(','))
 
-            if new_peers != self.peers:
-                self.peers = new_peers
-                print(f"Peers: {self.peers}")
+                if new_peers != self.peers:
+                    self.peers = new_peers
+                    print(f"Peers: {self.peers}")
+            except Exception as e:
+                print(f"Error getting peers from tracker: {e}")
 
     def start_server(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -54,3 +59,4 @@ server_thread.start()
 
 while True:
     peer.get_peers_from_tracker()
+    time.sleep(1)
