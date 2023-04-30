@@ -1,6 +1,7 @@
 from music_player import MusicPlayer
 from PyQt5 import QtWidgets
 import sys
+import threading
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
