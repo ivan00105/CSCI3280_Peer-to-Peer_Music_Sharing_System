@@ -1,10 +1,5 @@
-"""
-pip install pythonp2p pycryptodome
-Rename the folder in site-packages from crypto to Crypto if Module not found error arises. 
-"""
-from pythonp2p import Node  
 import socket
-import requests
+import threading
 
 def get_local_ip():
     try:
@@ -17,36 +12,58 @@ def get_local_ip():
         print("Error getting local IP address:", e)
         return None
 
-# Function to get the public IP address of the client
-def get_public_ip():
-    try:
-        response = requests.get("https://api.ipify.org")
-        return response.text.strip()
-    except:
-        return None
-
-
-public_ip = get_public_ip()
 local_ip =  get_local_ip()
 print("Your local IP address is:", local_ip)
-print("Your public IP address is :", public_ip)
-class MyNode(Node):
+# List of peers (IP, port) - add more IPs as needed
+PEERS = [
+    (local_ip, 5000),
+    (local_ip, 5001),
+]
 
-    def on_message(self, message, sender, private):
-        print(f"Message from {sender}: {message}")
+class SimpleP2P:
+    def __init__(self, ip, port, peers):
+        self.ip = ip
+        self.port = port
+        self.peers = peers
+        self.connections = []
 
-my_node = MyNode("10.0.207.10", 65432, 65433)
-my_node.start()
+        self.server_thread = threading.Thread(target=self.run_server)
+        self.server_thread.daemon = True
+        self.server_thread.start()
 
-# Connect to another node
-# my_node.connect_to("IP_ADDRESS", 65434)
+        self.connect_to_peers()
 
-# # Send a message to all nodes
-# my_node.send_message("Hello, everyone!")
+    def run_server(self):
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server_socket.bind((self.ip, self.port))
+        server_socket.listen(5)
 
-# # Share a file
-# my_node.setfiledir("downloads")
-# file_hash = my_node.addfile("path/to/your/file.ext")
+        print(f"Server running on {self.ip}:{self.port}")
 
-# # Request a file
-# my_node.requestFile("FILE_HASH")
+        while True:
+            conn, addr = server_socket.accept()
+            self.connections.append(conn)
+            print(f"Connected to {addr}")
+
+    def connect_to_peers(self):
+        for peer in self.peers:
+            if peer != (self.ip, self.port):
+                try:
+                    peer_ip, peer_port = peer
+                    conn = socket.create_connection((peer_ip, peer_port))
+                    self.connections.append(conn)
+                    print(f"Connected to {peer_ip}:{peer_port}")
+                except:
+                    print(f"Failed to connect to {peer_ip}:{peer_port}")
+
+def main():
+
+    p2p = SimpleP2P(local_ip, 5000, PEERS)
+
+    # Keep the program running
+    while True:
+        pass
+
+if __name__ == "__main__":
+    main()
