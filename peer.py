@@ -4,11 +4,12 @@ import time
 import json
 
 class Peer:
-    def __init__(self, port, tracker_host, tracker_port):
+    def __init__(self, port, tracker_host, tracker_port, music_player):
         self.port = port
         self.tracker_host = tracker_host
         self.tracker_port = tracker_port
         self.peers = set()
+        self.music_player = music_player
 
     def register_with_tracker(self):
         try:
@@ -51,7 +52,12 @@ class Peer:
 
     def handle_client(self, client_socket):
         song_list = self.receive_song_list(client_socket)
-        # Your logic to handle the received song list goes here
+        self.music_player.update_received_song_list(song_list)
+
+        
+    def update_received_song_list(self, received_song_list):
+        self.received_song_list = received_song_list
+        self.select_songs(self.current_search_text)
     
     def send_song_list(self, song_list, peer_addr):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
