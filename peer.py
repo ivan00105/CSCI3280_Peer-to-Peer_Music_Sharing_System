@@ -54,9 +54,10 @@ class Peer:
 
     def handle_client(self, client_socket):
         song_list = self.receive_song_list(client_socket)
-        self.music_player.update_received_song_list(song_list)
+        if song_list is not None:
+            print(f"Received song list: {song_list}")
+            self.music_player.update_received_song_list(song_list)
 
-        
     def update_received_song_list(self, received_song_list):
         self.received_song_list = received_song_list
         self.select_songs(self.current_search_text)
@@ -76,7 +77,7 @@ class Peer:
                 s.connect(addr)
                 s.sendall(self.MSG_GET_SONG_LIST)
                 data = s.recv(4096)
-                song_list = pickle.loads(data)
+                song_list = json.loads(data.decode())
                 return song_list
         except Exception as e:
             print(f"Error receiving song list: {e}")

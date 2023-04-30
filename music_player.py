@@ -606,7 +606,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
                     self.received_song_list.extend(received_songs)
 
             self.select_songs(self.ui.search_field.text())
-            time.sleep(3)
+            time.sleep(1)
 
 
             
