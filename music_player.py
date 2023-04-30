@@ -602,7 +602,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
                 if received_songs:
                     self.received_song_list.extend(received_songs)
 
-            self.select_songs(self.ui.search_lineEdit.text())
+            self.select_songs(self.ui.search_field.text())
             time.sleep(10)
 
             
