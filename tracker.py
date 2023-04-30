@@ -25,18 +25,25 @@ class Tracker:
             server_socket.listen(5)
 
             while True:
-                client_socket, client_addr = server_socket.accept()
-                data = client_socket.recv(1024).decode()
-                if data == "REGISTER":
-                    self.peers.add(client_addr)
-                    response = "OK"
-                elif data == "GET_PEERS":
-                    response = ','.join([f"{addr[0]}:{addr[1]}" for addr in self.peers])
-                else:
-                    response = "INVALID_COMMAND"
+                try:
+                    client_socket, client_addr = server_socket.accept()
+                    data = client_socket.recv(1024).decode()
+                    if data == "REGISTER":
+                        self.peers.add(client_addr)
+                        response = "OK"
+                    elif data == "GET_PEERS":
+                        response = ','.join([f"{addr[0]}:{addr[1]}" for addr in self.peers])
+                    else:
+                        response = "INVALID_COMMAND"
 
-                client_socket.sendall(response.encode())
-                client_socket.close()
+                    client_socket.sendall(response.encode())
+                except ConnectionResetError as e:
+                    print(f"Error: {e} - Connection was reset by the remote host")
+                except Exception as e:
+                    print(f"Error: {e}")
+                finally:
+                    client_socket.close()
+
 
 tracker = Tracker("0.0.0.0", 50000)
 tracker.start()
