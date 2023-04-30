@@ -586,24 +586,28 @@ class MusicPlayer(QtWidgets.QMainWindow):
             port = int(port_str)
             self.peer.send_song_list(self.song_path_list, (ip, port))
             
-    def update_peers_and_song_lists(self):
-        while True:
-            new_peers = self.peer.get_peers_from_tracker()
-            if new_peers:
-                self.peer.peers = list(set(new_peers))  # Update peers and remove duplicates
+def update_peers_and_song_lists(self):
+    while True:
+        new_peers = self.peer.get_peers_from_tracker()
+        if new_peers:
+            # Update peers and remove duplicates, ignore empty strings
+            self.peer.peers = list(set([p for p in new_peers if p]))
 
-            self.received_song_list.clear()  # Clear the list before updating
+        self.received_song_list.clear()  # Clear the list before updating
 
-            for peer_addr in self.peer.peers:
-                ip, port_str = peer_addr.split(':')
-                port = int(port_str)
-                received_songs = self.peer.receive_song_list((ip, port))
+        for peer_addr in self.peer.peers:
+            if not peer_addr:  # Skip empty strings
+                continue
+            ip, port_str = peer_addr.split(':')
+            port = int(port_str)
+            received_songs = self.peer.request_song_list((ip, port))
 
-                if received_songs:
-                    self.received_song_list.extend(received_songs)
+            if received_songs:
+                self.received_song_list.extend(received_songs)
 
-            self.select_songs(self.ui.search_field.text())
-            time.sleep(10)
+        self.select_songs(self.ui.search_lineEdit.text())
+        time.sleep(3)
+
 
             
     def update_merged_song_list(self, received_song_list):
