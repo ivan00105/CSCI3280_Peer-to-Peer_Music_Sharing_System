@@ -61,17 +61,12 @@ class Peer:
         self.select_songs(self.current_search_text)
     
     def send_song_list(self, song_list, peer_addr):
-        ip, port_str = peer_addr.split(':')
-        port = int(port_str)
-
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             try:
-                sock.connect((ip, port))
+                sock.connect(peer_addr)
                 sock.sendall(json.dumps(song_list).encode())
             except Exception as e:
                 print(f"Error sending song list: {e}")
-
-
 
     def receive_song_list(self, client_socket):
         try:
