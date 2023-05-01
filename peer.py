@@ -88,11 +88,19 @@ class Peer(QObject):
             server_socket.close()
 
     def handle_client(self, client_socket, client_addr):
-        song_list = self.receive_song_list(client_addr)
+        song_list = self.receive_song_list(client_socket)
         if song_list is not None:
             print(f"Received song list: {song_list}")
             self.song_list_received.emit(song_list)
 
+    def start_client(self):
+        while True:
+            self.get_peers_from_tracker()
+            for peer in self.peers:
+                peer_addr = tuple(peer.split(':'))
+                peer_addr = (peer_addr[0], int(peer_addr[1]))
+                self.handle_client(peer_addr)
+            time.sleep(5)  # Add a delay between each iteration
 
     def update_received_song_list(self, received_song_list):
         self.received_song_list = received_song_list
