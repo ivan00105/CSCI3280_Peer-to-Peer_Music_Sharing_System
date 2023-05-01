@@ -81,7 +81,7 @@ class Peer(QObject):
             while True:
                 try:
                     client_socket, client_addr = server_socket.accept()
-                    threading.Thread(target=self.handle_client, args=(client_addr,), name="handle_client").start()
+                    threading.Thread(target=self.handle_client, args=(client_socket, client_addr), name="handle_client").start()
                 except Exception as e:
                     print(f"Error: {e}")
         finally:
@@ -92,6 +92,7 @@ class Peer(QObject):
         if song_list is not None:
             print(f"Received song list: {song_list}")
             self.song_list_received.emit(song_list)
+
 
     def update_received_song_list(self, received_song_list):
         self.received_song_list = received_song_list
@@ -108,17 +109,13 @@ class Peer(QObject):
             except Exception as e:
                 print(f"Error sending song list: {e}")
 
-
-    def receive_song_list(self, peer_addr):
+    def receive_song_list(self, client_socket):
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
-                client_socket.settimeout(5)
-                client_socket.connect(peer_addr)
-                data = client_socket.recv(4096)
-                song_list = json.loads(data.decode())
-                return song_list
+            data = client_socket.recv(4096)
+            song_list = json.loads(data.decode())
+            return song_list
         except Exception as e:
-            print(f"Error getting songs from peer {peer_addr}: {e}")
+            print(f"Error getting songs from client_socket {client_socket}: {e}")
             return None
 
     def get_local_ip(self):
