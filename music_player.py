@@ -119,6 +119,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
 
         """network"""
         self.peer = Peer(12345, "172.20.10.7", 50000, self)
+        self.peer.song_list_received.connect(self.update_received_song_list)
         self.register_thread = threading.Thread(target=self.peer.register_with_tracker)
         self.register_thread.daemon = True
         self.register_thread.start()
@@ -385,14 +386,6 @@ class MusicPlayer(QtWidgets.QMainWindow):
         # Combine local and received songs
         all_songs = result + self.received_song_list
 
-        # Sort the combined song list based on the chosen sort mode
-        if self.sort_mode == 0:
-            all_songs = sorted(all_songs, key=lambda x: ''.join(lazy_pinyin(x['title'], style=Style.TONE3)).lower())
-        elif self.sort_mode == 1:
-            all_songs = sorted(all_songs, key=lambda x: x['mtime'], reverse=True)
-        elif self.sort_mode == 2:
-            all_songs = sorted(all_songs, key=lambda x: x['ctime'], reverse=True)
-
         self.ui.playlist_listWidget.clear()
         self.song_path_list = []
         count = 0
@@ -411,11 +404,13 @@ class MusicPlayer(QtWidgets.QMainWindow):
 
             self.song_path_list.append({
                 'index': count,
-                'path': item['path']
+                'path': item['path'],
+                'is_local': item.get('is_local', True)
             })
             count += 1
 
         self.local_songs_count = count
+
 
 
     def update_songs_list(self):
@@ -515,13 +510,37 @@ class MusicPlayer(QtWidgets.QMainWindow):
         song_index = self.ui.playlist_listWidget.currentRow()
         song_dict: dict = self.song_path_list[song_index]
         self.song_current_path = song_dict['path']
-        if self.play_mode == 2:  # random
-            random.shuffle(self.song_path_playlist)
+        is_local = song_dict['is_local']
 
-        for item in self.song_path_playlist:
-            if item['path'] == self.song_current_path:
-                self.song_index = self.song_path_playlist.index(item)
-        self.play_init()
+        if is_local:
+            # Handle local song playback
+            if self.play_mode == 2:  # random
+                random.shuffle(self.song_path_playlist)
+
+            for item in self.song_path_playlist:
+                if item['path'] == self.song_current_path:
+                    self.song_index = self.song_path_playlist.index(item)
+            self.play_init()
+        else:
+            # Handle remote song playback
+            # Implement your logic for downloading/streaming the remote song
+            # For example, you can download the song to a temporary directory and then play it:
+            pass
+            # temp_song_path = self.download_remote_song(self.song_current_path)  # You need to implement this method
+
+            # if temp_song_path:
+            #     self.song_current_path = temp_song_path
+
+            #     if self.play_mode == 2:  # random
+            #         random.shuffle(self.song_path_playlist)
+
+            #     for item in self.song_path_playlist:
+            #         if item['path'] == self.song_current_path:
+            #             self.song_index = self.song_path_playlist.index(item)
+            #     self.play_init()
+            # else:
+            #     print("Failed to download the remote song")
+
 
     def info_double_clicked(self):
         if self.song_current_path:
@@ -632,16 +651,44 @@ class MusicPlayer(QtWidgets.QMainWindow):
     #     except Exception as e:
     #         print(f"Error getting songs from peer {peer_addr}: {e}")
     #         return None
+    def update_received_song_list(self, song_list):
+        self.received_song_list = song_list
+        def add_received_songs():
+            for item in song_list:
+                icon_path = "images/cloud.png"
+                icon = QIcon(icon_path)
+                item_text = f"{item['title']}\n- {item['artist']}"
+                item_w = QListWidgetItem()
+                item_w.setText(item_text)
+                item_w.setIcon(icon)
+                self.ui.playlist_listWidget.addItem(item_w)
+
+                self.song_path_list.append({
+                    'index': self.local_songs_count,
+                    'path': item['path'],
+                    'is_local': False
+                })
+                self.local_songs_count += 1
+        #execute the ui update on the main thread
+        QtCore.QMetaObject.invokeMethod(self, 'add_received_songs', QtCore.Qt.QueuedConnection)
+
             
     def update_merged_song_list(self, received_song_list):
         # Merge the received song list with the local song list
         for song in received_song_list:
-            if song not in self.song_path_list:
+            song_is_new = True
+            for local_song in self.song_path_list:
+                if song['path'] == local_song['path']:
+                    song_is_new = False
+                    break
+            if song_is_new:
+                song['is_local'] = False
                 self.song_path_list.append(song)
 
         # Update the user interface or any other components that depend on the song list
         # For example, if you have a listbox displaying the songs, you should update it here
         self.update_song_list_ui()
+
 
     def update_song_list_ui(self):
         self.select_songs(self.current_search_text)

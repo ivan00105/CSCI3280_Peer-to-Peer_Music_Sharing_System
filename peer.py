@@ -103,6 +103,8 @@ class Peer(QObject):
         song_list = self.receive_song_list(client_socket)  # Change client_addr to client_socket
         if song_list is not None:
             print(f"Received song list: {song_list}")
+            for song in song_list:
+                song['is_local'] = False
             self.song_list_received.emit(song_list)
 
     def should_send_song_list(self, peer_addr):
