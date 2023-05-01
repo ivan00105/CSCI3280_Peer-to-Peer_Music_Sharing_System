@@ -638,8 +638,8 @@ class MusicPlayer(QtWidgets.QMainWindow):
     def add_received_songs(self, song_list):
         if not song_list:
             return
-        
-        local_song_paths = set([song['path'] for song in self.local_path_list])
+
+        local_song_paths = set(self.local_path_list)
 
         for item in song_list:
             file_path = item['path']
@@ -661,6 +661,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
                     'is_local': False
                 })
                 self.local_songs_count += 1
+
 
     def update_merged_song_list(self, received_song_list):
         # Merge the received song list with the local song list
