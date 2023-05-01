@@ -383,17 +383,11 @@ class MusicPlayer(QtWidgets.QMainWindow):
             if item['title'] == 'None':
                 item['title'] = item['file_name']
 
-        # Combine local and received songs
-        all_songs = result + self.received_song_list
-
         self.ui.playlist_listWidget.clear()
         self.song_path_list = []
         count = 0
-        for item in all_songs:
-            if item.get('is_local', True):
-                icon_path = "images/local.png"
-            else:
-                icon_path = "images/cloud.png"
+        for item in result:
+            icon_path = "images/local.png"
 
             icon = QIcon(icon_path)
             item_text = f"{item['title']}\n- {item['artist']}"
@@ -405,7 +399,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
             self.song_path_list.append({
                 'index': count,
                 'path': item['path'],
-                'is_local': item.get('is_local', True)
+                'is_local': True
             })
             count += 1
 
@@ -639,7 +633,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
         if not song_list:
             return
 
-        local_song_paths = set(self.local_path_list)
+        local_song_paths = set([song['path'] for song in self.local_path_list])
 
         for item in song_list:
             file_path = item['path']
@@ -661,7 +655,6 @@ class MusicPlayer(QtWidgets.QMainWindow):
                     'is_local': False
                 })
                 self.local_songs_count += 1
-
 
     def update_merged_song_list(self, received_song_list):
         # Merge the received song list with the local song list
