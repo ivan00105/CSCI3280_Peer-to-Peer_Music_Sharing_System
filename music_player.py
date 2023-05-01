@@ -20,6 +20,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 
 import threading
 import time
+import socket
 
 class UpdatePeersThread(QThread):
     def __init__(self, music_player):
@@ -601,7 +602,10 @@ class MusicPlayer(QtWidgets.QMainWindow):
 
     def update_peers_and_song_lists(self):
         while True:
-            self.peer.get_peers_from_tracker()
+            new_peers = self.peer.get_peers_from_tracker()
+            if new_peers:
+                # Update peers and remove duplicates, ignore empty strings
+                self.peer.peers = list(set([p for p in new_peers if p]))
 
             self.received_song_list.clear()  # Clear the list before updating
 
@@ -610,7 +614,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
                     continue
                 ip, port_str = peer_addr.split(':')
                 port = int(port_str)
-                received_songs = self.get_songs_from_peer((ip, port))
+                received_songs = self.peer.receive_song_list((ip, port))
 
                 if received_songs:
                     self.received_song_list.extend(received_songs)
