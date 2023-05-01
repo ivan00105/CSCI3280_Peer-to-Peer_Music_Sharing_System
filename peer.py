@@ -64,20 +64,17 @@ class Peer(QObject):
 
                 new_peers = set(connected_peers.split(','))
                 disconnected_peers = set(disconnected_peers.split(','))
-
                 # Remove disconnected peers
                 for peer in disconnected_peers:
                     self.peers.discard(peer)
                     self.sent_song_list.pop(peer, None)
-
                 # Add new peers
                 for peer in new_peers:
                     if peer not in self.peers:
                         self.peers.add(peer)
                         self.sent_song_list[peer] = False
-
+                        self.handle_peer(tuple(peer.split(':')))  # Send the song list to the new peer immediately
                 print(f"Peers: {self.peers}")
-
                 # Send a heartbeat signal to the tracker
                 sock.sendall("REGISTER".encode())
         except TimeoutError:
@@ -112,7 +109,15 @@ class Peer(QObject):
         if peer_addr not in self.sent_song_list:
             self.sent_song_list[peer_addr] = False
         return not self.sent_song_list[peer_addr]
-    
+    def is_peer_connected(self, peer_addr):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                sock.settimeout(2)  # Set a short timeout for the connection
+                sock.connect(peer_addr)
+                return True
+        except (socket.timeout, ConnectionRefusedError, OSError):
+            return False
+
     def start_client(self):
         self.sent_song_list = {}
         thread_pool = ThreadPoolExecutor(max_workers=10)  # Adjust the number of workers as needed
@@ -120,18 +125,17 @@ class Peer(QObject):
         while True:
             self.get_peers_from_tracker()
 
-            for peer in self.peers:
-                if ':' in peer:  # Check if the peer string contains a colon
-                    peer_addr = tuple(peer.split(':'))
-                    try:
-                        peer_addr = (peer_addr[0], int(peer_addr[1]))
-                    except IndexError:
-                        print(f"Invalid peer address: {peer}")
-                        continue
+            for peer in list(self.peers):
+                peer_addr = tuple(peer.split(':'))
+                peer_addr = (peer_addr[0], int(peer_addr[1]))
 
+                if not self.is_peer_connected(peer_addr):
+                    self.peers.remove(peer)
+                    self.sent_song_list.pop(peer, None)
+                else:
                     thread_pool.submit(self.handle_peer, peer_addr)
 
-            time.sleep(5)  # Add a delay between each iteration
+            time.sleep(1)  # Add a delay between each iteration
 
 
     def update_received_song_list(self, received_song_list):
