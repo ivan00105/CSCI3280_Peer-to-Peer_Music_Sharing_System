@@ -30,15 +30,21 @@ class Tracker:
                 try:
                     client_socket, client_addr = server_socket.accept()
                     data = client_socket.recv(1024).decode()
-                    if data == "REGISTER":
-                        self.peers.add(client_addr)
-                        self.peer_timestamps[client_addr] = time.time()
-                        response = "OK"
-                    elif data == "GET_PEERS":
+                    command, *args = data.split()
+
+                    if command == "REGISTER":
+                        if args:
+                            peer_addr = args[0]
+                            self.peers.add(peer_addr)
+                            self.peer_timestamps[peer_addr] = time.time()
+                            response = "OK"
+                        else:
+                            response = "INVALID_ARGUMENTS"
+                    elif command == "GET_PEERS":
                         # Remove peers that have timed out (e.g., 2 minutes)
                         current_time = time.time()
                         self.peers = {peer for peer in self.peers if current_time - self.peer_timestamps[peer] < 120}
-                        response = ','.join([f"{addr[0]}:{addr[1]}" for addr in self.peers])
+                        response = ','.join(self.peers)
                     else:
                         response = "INVALID_COMMAND"
 
@@ -49,6 +55,7 @@ class Tracker:
                     print(f"Error: {e}")
                 finally:
                     client_socket.close()
+
 
 
 tracker = Tracker("0.0.0.0", 50000)

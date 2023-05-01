@@ -43,7 +43,9 @@ class Peer(QObject):
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                 sock.connect((self.tracker_host, self.tracker_port))
-                sock.sendall("REGISTER".encode())
+                local_ip = self.get_local_ip()
+                register_message = f"REGISTER {local_ip}:{self.server_port}"
+                sock.sendall(register_message.encode())
                 response = sock.recv(1024).decode()
                 if response == "OK":
                     print("Registered with tracker")
@@ -116,7 +118,15 @@ class Peer(QObject):
             print(f"Error getting songs from peer {peer_addr}: {e}")
             return None
 
-
+    def get_local_ip(self):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                s.connect(("8.8.8.8", 80))
+                ip = s.getsockname()[0]
+        except Exception as e:
+            print(f"Error: {e}")
+            ip = "Unknown"
+        return ip
 
 
 
