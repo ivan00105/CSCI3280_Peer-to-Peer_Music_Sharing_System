@@ -653,26 +653,27 @@ class MusicPlayer(QtWidgets.QMainWindow):
     #         return None
     def update_received_song_list(self, song_list):
         self.received_song_list = song_list
-        def add_received_songs():
-            for item in song_list:
-                icon_path = "images/cloud.png"
-                icon = QIcon(icon_path)
-                item_text = f"{item['title']}\n- {item['artist']}"
-                item_w = QListWidgetItem()
-                item_w.setText(item_text)
-                item_w.setIcon(icon)
-                self.ui.playlist_listWidget.addItem(item_w)
 
-                self.song_path_list.append({
-                    'index': self.local_songs_count,
-                    'path': item['path'],
-                    'is_local': False
-                })
-                self.local_songs_count += 1
-        #execute the ui update on the main thread
-        QtCore.QMetaObject.invokeMethod(self, 'add_received_songs', QtCore.Qt.QueuedConnection)
+        # Execute the UI update on the main thread
+        QtCore.QMetaObject.invokeMethod(self, 'add_received_songs', QtCore.Qt.QueuedConnection, QtCore.Q_ARG(list, song_list))
 
-            
+    def add_received_songs(self, song_list):
+        for item in song_list:
+            icon_path = "images/cloud.png"
+            icon = QIcon(icon_path)
+            item_text = f"{item['title']}\n- {item['artist']}"
+            item_w = QListWidgetItem()
+            item_w.setText(item_text)
+            item_w.setIcon(icon)
+            self.ui.playlist_listWidget.addItem(item_w)
+
+            self.song_path_list.append({
+                'index': self.local_songs_count,
+                'path': item['path'],
+                'is_local': False
+            })
+            self.local_songs_count += 1
+
     def update_merged_song_list(self, received_song_list):
         # Merge the received song list with the local song list
         for song in received_song_list:
