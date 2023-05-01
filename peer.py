@@ -49,7 +49,7 @@ class Peer(QObject):
 
     def start_server(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server_socket.bind(("", self.server_port))
         server_socket.listen(5)
 
@@ -73,12 +73,14 @@ class Peer(QObject):
     def send_song_list(self, song_list, peer_addr):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             try:
-                host, port = peer_addr
+                host, port = peer_addr.split(":")
+                port = int(port)
                 sock.settimeout(5)  # Set a timeout for the socket connection
-                sock.connect((host, int(port)))
+                sock.connect((host, port))
                 sock.sendall(json.dumps(song_list).encode())
             except Exception as e:
                 print(f"Error sending song list: {e}")
+
 
     def receive_song_list(self, peer_addr):
         try:
