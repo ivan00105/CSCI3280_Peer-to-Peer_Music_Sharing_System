@@ -655,7 +655,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
         self.received_song_list = song_list
 
         # Execute the UI update on the main thread
-        QtCore.QMetaObject.invokeMethod(self, 'add_received_songs', QtCore.Qt.QueuedConnection, QtCore.Q_ARG(list, song_list))
+        QtCore.QTimer.singleShot(0, lambda: self.add_received_songs(song_list))
 
     def add_received_songs(self, song_list):
         for item in song_list:
