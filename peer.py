@@ -4,6 +4,7 @@ import time
 import json
 import pickle
 from PyQt5.QtCore import QObject, pyqtSignal
+from upnp_port_forward import forwardPort
 
 class Peer(QObject):
     song_list_received = pyqtSignal(list)
@@ -16,6 +17,27 @@ class Peer(QObject):
         self.peers = set()
         self.music_player = music_player
         self.song_list_received.connect(music_player.update_merged_song_list)
+
+        # Forward the server_port using UPnP
+        self.forward_port_using_upnp()
+
+    def forward_port_using_upnp(self):
+        eport = self.server_port  # External port
+        iport = self.server_port  # Internal port
+        router = None  # Specify router IP, if needed
+        lanip = None  # Specify LAN IP, if needed
+        disable = False  # Set to True if you want to disable the port forwarding
+        protocol = 'TCP'  # Protocol to use for forwarding
+        time = 0  # Lease duration, 0 for indefinite
+        description = 'Music App Port Forwarding'  # Description for the port forwarding entry
+        verbose = True  # Set to True for detailed output
+
+        success = forwardPort(eport, iport, router, lanip, disable, protocol, time, description, verbose)
+        if success:
+            print("Port forwarding successful.")
+        else:
+            print("Port forwarding failed. Application may not work as expected.")
+
 
     def register_with_tracker(self):
         try:
