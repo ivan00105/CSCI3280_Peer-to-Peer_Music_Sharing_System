@@ -416,7 +416,6 @@ class MusicPlayer(QtWidgets.QMainWindow):
             count += 1
 
         self.local_songs_count = count
-        self.send_local_song_list_to_peers()
 
 
     def update_songs_list(self):
@@ -604,23 +603,26 @@ class MusicPlayer(QtWidgets.QMainWindow):
             self.peer.send_song_list(self.song_path_list, peer_addr)
 
     def update_peers_and_song_lists(self):
-        while True:
-            self.peer.get_peers_from_tracker()
+        previous_peers = self.peer.peers.copy()
+        self.peer.get_peers_from_tracker()
 
-            self.received_song_list.clear()  # Clear the list before updating
+        new_peers = self.peer.peers - previous_peers
+        for new_peer in new_peers:
+            self.peer.send_song_list(self.song_path_list, new_peer)
 
-            for peer_addr in self.peer.peers:
-                if not peer_addr:  # Skip empty strings
-                    continue
-                ip, port_str = peer_addr.split(':')
-                port = int(port_str)
-                received_songs = self.peer.receive_song_list((ip, int(port)))
+        self.received_song_list.clear()  # Clear the list before updating
 
-                if received_songs:
-                    self.received_song_list.extend(received_songs)
+        for peer_addr in self.peer.peers:
+            if not peer_addr:  # Skip empty strings
+                continue
+            ip, port_str = peer_addr.split(':')
+            port = int(port_str)
+            received_songs = self.peer.receive_song_list((ip, int(port)))
 
-            self.select_songs(self.ui.search_field.text())
-            time.sleep(1)
+            if received_songs:
+                self.received_song_list.extend(received_songs)
+
+        self.select_songs(self.ui.search_field.text())
 
     def get_songs_from_peer(self, peer_addr):
         try:
