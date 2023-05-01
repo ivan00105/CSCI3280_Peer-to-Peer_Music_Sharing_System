@@ -610,6 +610,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
             self.received_song_list.clear()  # Clear the list before updating
 
             for peer_addr in self.peer.peers:
+                print(f"Current peers: {self.peer.peers}")
                 if not peer_addr:  # Skip empty strings
                     continue
                 ip, port_str = peer_addr.split(':')
