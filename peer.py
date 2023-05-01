@@ -81,14 +81,14 @@ class Peer(QObject):
             while True:
                 try:
                     client_socket, client_addr = server_socket.accept()
-                    threading.Thread(target=self.handle_client, args=(client_socket,), name="handle_client").start()
+                    threading.Thread(target=self.handle_client, args=(client_addr,), name="handle_client").start()
                 except Exception as e:
                     print(f"Error: {e}")
         finally:
             server_socket.close()
 
-    def handle_client(self, client_socket):
-        song_list = self.receive_song_list(client_socket)
+    def handle_client(self, client_socket, client_addr):
+        song_list = self.receive_song_list(client_addr)
         if song_list is not None:
             print(f"Received song list: {song_list}")
             self.song_list_received.emit(song_list)
