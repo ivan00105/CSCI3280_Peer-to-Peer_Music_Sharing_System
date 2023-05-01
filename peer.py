@@ -146,6 +146,9 @@ class Peer(QObject):
             self.song_list_received.emit(song_list)
         except Exception as e:
             print(f"Error connecting to peer {peer_addr}: {e}")
+        finally:
+            client_socket.close()
+
 
     def get_local_ip(self):
         try:
