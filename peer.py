@@ -3,14 +3,21 @@ import threading
 import time
 import json
 import pickle
+from PyQt5.QtCore import QObject, pyqtSignal
 
-class Peer:
+class Peer(QObject):
+    song_list_received = pyqtSignal(list)
+
     def __init__(self, port, tracker_host, tracker_port, music_player):
+        super().__init__()
         self.port = port
         self.tracker_host = tracker_host
         self.tracker_port = tracker_port
         self.peers = set()
         self.music_player = music_player
+        self.song_list_received.connect(music_player.update_merged_song_list)
+
+
 
     def register_with_tracker(self):
         try:
@@ -57,7 +64,7 @@ class Peer:
         song_list = self.receive_song_list(client_socket)
         if song_list is not None:
             print(f"Received song list: {song_list}")
-            self.music_player.update_received_song_list(song_list)
+            self.song_list_received.emit(song_list)
 
     def update_received_song_list(self, received_song_list):
         self.received_song_list = received_song_list

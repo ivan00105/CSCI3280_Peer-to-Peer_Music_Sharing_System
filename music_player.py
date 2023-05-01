@@ -16,9 +16,22 @@ from player_window import UI_MainWindow
 from songs import Song
 from edit_song_details import EditFile
 from peer import Peer
+from PyQt5.QtCore import QThread, pyqtSignal
 
 import threading
 import time
+
+class UpdatePeersThread(QThread):
+    def __init__(self, music_player):
+        super().__init__()
+        self.music_player = music_player
+
+    def run(self):
+        while True:
+            self.music_player.update_peers_and_song_lists()
+            time.sleep(1)
+
+
 class MusicPlayer(QtWidgets.QMainWindow):
 
     def __init__(self):
@@ -111,13 +124,10 @@ class MusicPlayer(QtWidgets.QMainWindow):
         self.server_thread = threading.Thread(target=self.peer.start_server)
         self.server_thread.daemon = True
         self.server_thread.start()
-        self.update_thread = threading.Thread(target=self.update_peers_and_song_lists)
-        self.update_thread.daemon = True
+        self.update_thread = UpdatePeersThread(self)
         self.update_thread.start()
         self.received_song_list = []
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_peers_and_song_lists)
-        self.timer.start(5000)  # Call update_peers_and_song_lists every 5 seconds
+        self.local_song_list = []
 
 
         self.db_path = SqliteDB.db_path
@@ -587,8 +597,8 @@ class MusicPlayer(QtWidgets.QMainWindow):
         for peer_addr in self.peer.peers:
             ip, port_str = peer_addr.split(':')
             port = int(port_str)
-            self.peer.send_song_list(self.song_path_list, (ip, port))
-            
+            self.peer.send_song_list(self.song_path_list, peer_addr)
+
     def update_peers_and_song_lists(self):
         while True:
             new_peers = self.peer.get_peers_from_tracker()
