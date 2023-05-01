@@ -128,8 +128,9 @@ class Peer(QObject):
             self.get_peers_from_tracker()
 
             for peer in list(self.peers):
-                host, port = peer.split(':')
-                peer_addr = (host, int(port))
+                peer_addr = tuple(peer.split(':'))
+                peer_addr = (peer_addr[0], int(peer_addr[1]))
+
                 if not self.is_peer_connected(peer_addr):
                     self.peers.remove(peer)
                     self.sent_song_list.pop(peer, None)
@@ -165,10 +166,9 @@ class Peer(QObject):
             return None
 
     def handle_peer(self, peer_addr):
-        peer_str = f"{peer_addr[0]}:{peer_addr[1]}"
-        if self.should_send_song_list(peer_str):
+        if self.should_send_song_list(peer_addr):
             self.send_song_list(self.music_player.song_path_list, peer_addr)
-            self.sent_song_list[peer_str] = True
+            self.sent_song_list[peer_addr] = True
 
     def get_local_ip(self):
         try:
