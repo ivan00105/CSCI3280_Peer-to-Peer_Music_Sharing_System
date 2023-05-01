@@ -22,15 +22,15 @@ import threading
 import time
 import socket
 
-class UpdatePeersThread(QThread):
-    def __init__(self, music_player):
-        super().__init__()
-        self.music_player = music_player
+# class UpdatePeersThread(QThread):
+#     def __init__(self, music_player):
+#         super().__init__()
+#         self.music_player = music_player
 
-    def run(self):
-        while True:
-            self.music_player.update_peers_and_song_lists()
-            time.sleep(1)
+#     def run(self):
+#         while True:
+#             self.music_player.update_peers_and_song_lists()
+#             time.sleep(1)
 
 
 class MusicPlayer(QtWidgets.QMainWindow):
@@ -125,8 +125,8 @@ class MusicPlayer(QtWidgets.QMainWindow):
         self.server_thread = threading.Thread(target=self.peer.start_server)
         self.server_thread.daemon = True
         self.server_thread.start()
-        self.update_thread = UpdatePeersThread(self)
-        self.update_thread.start()
+        # self.update_thread = UpdatePeersThread(self)
+        # self.update_thread.start()
         self.received_song_list = []
         self.local_song_list = []
         self.client_thread = threading.Thread(target=self.peer.start_client, name="client_thread")
@@ -596,42 +596,42 @@ class MusicPlayer(QtWidgets.QMainWindow):
             self.ui.lyric_listWidget.addItem(item)
 
     """networking part"""
-    def send_local_song_list_to_peers(self):
-        for peer_addr in self.peer.peers:
-            ip, port_str = peer_addr.split(':')
-            port = int(port_str)
-            self.peer.send_song_list(self.song_path_list, peer_addr)
+    # def send_local_song_list_to_peers(self):
+    #     for peer_addr in self.peer.peers:
+    #         ip, port_str = peer_addr.split(':')
+    #         port = int(port_str)
+    #         self.peer.send_song_list(self.song_path_list, peer_addr)
 
-    def update_peers_and_song_lists(self):
-        previous_peers = self.peer.peers.copy()
-        self.peer.get_peers_from_tracker()
+    # def update_peers_and_song_lists(self):
+    #     previous_peers = self.peer.peers.copy()
+    #     self.peer.get_peers_from_tracker()
 
-        new_peers = self.peer.peers - previous_peers
-        for new_peer in new_peers:
-            self.peer.send_song_list(self.song_path_list, new_peer)
+    #     new_peers = self.peer.peers - previous_peers
+    #     for new_peer in new_peers:
+    #         self.peer.send_song_list(self.song_path_list, new_peer)
 
-        self.received_song_list.clear()  # Clear the list before updating
+    #     self.received_song_list.clear()  # Clear the list before updating
 
-        for peer_addr in self.peer.peers:
-            if not peer_addr:  # Skip empty strings
-                continue
-            ip, port_str = peer_addr.split(':')
-            port = int(port_str)
-            received_songs = self.peer.receive_song_list((ip, int(port)))
+    #     for peer_addr in self.peer.peers:
+    #         if not peer_addr:  # Skip empty strings
+    #             continue
+    #         ip, port_str = peer_addr.split(':')
+    #         port = int(port_str)
+    #         received_songs = self.peer.receive_song_list((ip, int(port)))
 
-            if received_songs:
-                self.received_song_list.extend(received_songs)
+    #         if received_songs:
+    #             self.received_song_list.extend(received_songs)
 
-        self.select_songs(self.ui.search_field.text())
+    #     self.select_songs(self.ui.search_field.text())
 
-    def get_songs_from_peer(self, peer_addr):
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.connect(peer_addr)
-                return self.peer.receive_song_list(sock)
-        except Exception as e:
-            print(f"Error getting songs from peer {peer_addr}: {e}")
-            return None
+    # def get_songs_from_peer(self, peer_addr):
+    #     try:
+    #         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+    #             sock.connect(peer_addr)
+    #             return self.peer.receive_song_list(sock)
+    #     except Exception as e:
+    #         print(f"Error getting songs from peer {peer_addr}: {e}")
+    #         return None
             
     def update_merged_song_list(self, received_song_list):
         # Merge the received song list with the local song list

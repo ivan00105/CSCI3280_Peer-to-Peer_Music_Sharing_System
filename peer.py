@@ -5,6 +5,7 @@ import json
 import pickle
 from PyQt5.QtCore import QObject, pyqtSignal
 from upnp_port_forward import forwardPort
+from concurrent.futures import ThreadPoolExecutor
 
 class Peer(QObject):
     song_list_received = pyqtSignal(list)
@@ -61,9 +62,19 @@ class Peer(QObject):
                 response = sock.recv(1024).decode()
                 new_peers = set(response.split(','))
 
-                if new_peers != self.peers:
-                    self.peers = new_peers
-                    print(f"Peers: {self.peers}")
+                # Remove disconnected peers
+                disconnected_peers = self.peers - new_peers
+                for peer in disconnected_peers:
+                    self.peers.discard(peer)
+                    self.sent_song_list.pop(peer, None)
+
+                # Add new peers
+                for peer in new_peers:
+                    if peer not in self.peers:
+                        self.peers.add(peer)
+                        self.sent_song_list[peer] = False
+
+                print(f"Peers: {self.peers}")
 
                 # Send a heartbeat signal to the tracker
                 sock.sendall("REGISTER".encode())
@@ -71,6 +82,7 @@ class Peer(QObject):
             print("Failed to connect to the tracker. The application will work in offline mode.")
         except Exception as e:
             print(f"Error getting peers from tracker: {e}")
+
 
     def start_server(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -98,18 +110,19 @@ class Peer(QObject):
         if peer_addr not in self.sent_song_list:
             self.sent_song_list[peer_addr] = False
         return not self.sent_song_list[peer_addr]
-
+    
     def start_client(self):
         self.sent_song_list = {}
+        thread_pool = ThreadPoolExecutor(max_workers=10)  # Adjust the number of workers as needed
+
         while True:
             self.get_peers_from_tracker()
+
             for peer in self.peers:
                 peer_addr = tuple(peer.split(':'))
                 peer_addr = (peer_addr[0], int(peer_addr[1]))
 
-                if self.should_send_song_list(peer_addr):
-                    self.connect_to_peer(peer_addr)
-                    self.sent_song_list[peer_addr] = True
+                thread_pool.submit(self.handle_peer, peer_addr)
 
             time.sleep(5)  # Add a delay between each iteration
 
@@ -138,16 +151,11 @@ class Peer(QObject):
             print(f"Error getting songs from client_socket {client_socket}: {e}")
             return None
 
-    def connect_to_peer(self, peer_addr):
-        try:
-            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client_socket.connect(peer_addr)
-            song_list = self.receive_song_list(client_socket)
-            self.song_list_received.emit(song_list)
-        except Exception as e:
-            print(f"Error connecting to peer {peer_addr}: {e}")
-        finally:
-            client_socket.close()
+    def handle_peer(self, peer_addr):
+        if self.should_send_song_list(peer_addr):
+            self.connect_to_peer(peer_addr)
+            self.sent_song_list[peer_addr] = True
+
 
 
     def get_local_ip(self):
