@@ -51,9 +51,9 @@ class Peer(QObject):
                 response = sock.recv(1024).decode()
                 if response == "OK":
                     print("Registered with tracker")
-                    self.peer_timestamps[f"{local_ip}:{self.server_port}"] = time.time()
         except TimeoutError:
             print("Failed to connect to the tracker. The application will work in offline mode.")
+
 
     def get_peers_from_tracker(self):
         try:
@@ -63,8 +63,8 @@ class Peer(QObject):
                 response = sock.recv(1024).decode()
                 connected_peers, disconnected_peers = response.split('|')  # Assuming '|' separates the two lists in the response
 
-                new_peers = set(connected_peers.split(','))
-                disconnected_peers = set(disconnected_peers.split(','))
+                new_peers = set(connected_peers.split(',')) if connected_peers else set()
+                disconnected_peers = set(disconnected_peers.split(',')) if disconnected_peers else set()
                 # Remove disconnected peers
                 for peer in disconnected_peers:
                     self.peers.discard(peer)
@@ -82,7 +82,6 @@ class Peer(QObject):
             print("Failed to connect to the tracker. The application will work in offline mode.")
         except Exception as e:
             print(f"Error getting peers from tracker: {e}")
-
 
     def start_server(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

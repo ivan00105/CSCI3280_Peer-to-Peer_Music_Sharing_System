@@ -59,8 +59,8 @@ class Tracker:
                         for peer in timed_out_peers:
                             self.peer_timestamps.pop(peer, None)
 
-                        connected_peers = ','.join(self.peers)
-                        disconnected_peers = ','.join(self.disconnected_peers)
+                        connected_peers = ','.join(self.peers) if self.peers else ''
+                        disconnected_peers = ','.join(self.disconnected_peers) if self.disconnected_peers else ''
                         response = f"{connected_peers}|{disconnected_peers}"
                     else:
                         response = "INVALID_COMMAND"
