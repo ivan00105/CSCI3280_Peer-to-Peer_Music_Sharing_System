@@ -51,6 +51,7 @@ class Peer(QObject):
                 response = sock.recv(1024).decode()
                 if response == "OK":
                     print("Registered with tracker")
+                    self.peer_timestamps[f"{local_ip}:{self.server_port}"] = time.time()
         except TimeoutError:
             print("Failed to connect to the tracker. The application will work in offline mode.")
 
@@ -76,7 +77,7 @@ class Peer(QObject):
                         self.handle_peer(tuple(peer.split(':')))  # Send the song list to the new peer immediately
                 print(f"Peers: {self.peers}")
                 # Send a heartbeat signal to the tracker
-                sock.sendall("REGISTER".encode())
+                self.register_with_tracker()
         except TimeoutError:
             print("Failed to connect to the tracker. The application will work in offline mode.")
         except Exception as e:
