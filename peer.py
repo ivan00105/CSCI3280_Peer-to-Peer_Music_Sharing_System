@@ -145,7 +145,8 @@ class Peer(QObject):
         try:
             client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             client_socket.connect(peer_addr)
-            self.handle_client(client_socket, peer_addr)
+            song_list = self.receive_song_list(client_socket)
+            self.song_list_received.emit(song_list)
         except Exception as e:
             print(f"Error connecting to peer {peer_addr}: {e}")
 
