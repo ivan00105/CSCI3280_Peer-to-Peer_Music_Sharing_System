@@ -132,6 +132,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
         self.client_thread = threading.Thread(target=self.peer.start_client, name="client_thread")
         self.client_thread.daemon = True
         self.client_thread.start()
+        self.current_search_text = ""
 
         self.db_path = SqliteDB.db_path
         self.setting_path = 'config.json'
