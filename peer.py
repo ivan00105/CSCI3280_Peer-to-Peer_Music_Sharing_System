@@ -72,17 +72,20 @@ class Peer(QObject):
             print(f"Error getting peers from tracker: {e}")
 
     def start_server(self):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
-            server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            server_socket.bind(("", self.server_port))
-            server_socket.listen(5)
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server_socket.bind(("", self.server_port))
+        server_socket.listen(5)
 
+        try:
             while True:
                 try:
                     client_socket, client_addr = server_socket.accept()
                     threading.Thread(target=self.handle_client, args=(client_socket, client_addr), name="handle_client").start()
                 except Exception as e:
                     print(f"Error: {e}")
+        finally:
+            server_socket.close()
 
     def handle_client(self, client_socket):
         peer_addr = client_socket.getpeername()
