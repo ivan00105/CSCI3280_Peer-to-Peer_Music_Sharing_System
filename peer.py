@@ -99,7 +99,7 @@ class Peer(QObject):
             for peer in self.peers:
                 peer_addr = tuple(peer.split(':'))
                 peer_addr = (peer_addr[0], int(peer_addr[1]))
-                self.handle_client(peer_addr)
+                self.connect_to_peer(peer_addr)
             time.sleep(5)  # Add a delay between each iteration
 
     def update_received_song_list(self, received_song_list):
@@ -125,6 +125,14 @@ class Peer(QObject):
         except Exception as e:
             print(f"Error getting songs from client_socket {client_socket}: {e}")
             return None
+
+    def connect_to_peer(self, peer_addr):
+        try:
+            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client_socket.connect(peer_addr)
+            self.handle_client(client_socket, peer_addr)
+        except Exception as e:
+            print(f"Error connecting to peer {peer_addr}: {e}")
 
     def get_local_ip(self):
         try:

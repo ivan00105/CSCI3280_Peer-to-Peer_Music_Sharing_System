@@ -130,8 +130,8 @@ class MusicPlayer(QtWidgets.QMainWindow):
         self.received_song_list = []
         self.local_song_list = []
         self.client_thread = threading.Thread(target=self.peer.start_client, name="client_thread")
-        self.client_thread.start()
         self.client_thread.daemon = True
+        self.client_thread.start()
 
         self.db_path = SqliteDB.db_path
         self.setting_path = 'config.json'
