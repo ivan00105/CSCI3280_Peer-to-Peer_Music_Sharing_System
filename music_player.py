@@ -601,10 +601,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
 
     def update_peers_and_song_lists(self):
         while True:
-            new_peers = self.peer.get_peers_from_tracker()
-            if new_peers:
-                # Update peers and remove duplicates, ignore empty strings
-                self.peer.peers = list(set([p for p in new_peers if p]))
+            self.peer.get_peers_from_tracker()
 
             self.received_song_list.clear()  # Clear the list before updating
 
@@ -613,7 +610,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
                     continue
                 ip, port_str = peer_addr.split(':')
                 port = int(port_str)
-                received_songs = self.peer.receive_song_list((ip, port))
+                received_songs = self.get_songs_from_peer((ip, port))
 
                 if received_songs:
                     self.received_song_list.extend(received_songs)
@@ -621,7 +618,14 @@ class MusicPlayer(QtWidgets.QMainWindow):
             self.select_songs(self.ui.search_field.text())
             time.sleep(1)
 
-
+    def get_songs_from_peer(self, peer_addr):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                sock.connect(peer_addr)
+                return self.peer.receive_song_list(sock)
+        except Exception as e:
+            print(f"Error getting songs from peer {peer_addr}: {e}")
+            return None
             
     def update_merged_song_list(self, received_song_list):
         # Merge the received song list with the local song list
