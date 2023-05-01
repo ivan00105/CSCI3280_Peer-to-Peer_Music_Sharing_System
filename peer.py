@@ -128,9 +128,8 @@ class Peer(QObject):
             self.get_peers_from_tracker()
 
             for peer in list(self.peers):
-                peer_addr = tuple(peer.split(':'))
-                peer_addr = (peer_addr[0], int(peer_addr[1]))
-
+                host, port = peer.split(':')
+                peer_addr = (host, int(port))
                 if not self.is_peer_connected(peer_addr):
                     self.peers.remove(peer)
                     self.sent_song_list.pop(peer, None)
