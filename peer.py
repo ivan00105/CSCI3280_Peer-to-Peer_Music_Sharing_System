@@ -60,10 +60,12 @@ class Peer(QObject):
                 sock.connect((self.tracker_host, self.tracker_port))
                 sock.sendall("GET_PEERS".encode())
                 response = sock.recv(1024).decode()
-                new_peers = set(response.split(','))
+                connected_peers, disconnected_peers = response.split('|')  # Assuming '|' separates the two lists in the response
+
+                new_peers = set(connected_peers.split(','))
+                disconnected_peers = set(disconnected_peers.split(','))
 
                 # Remove disconnected peers
-                disconnected_peers = self.peers - new_peers
                 for peer in disconnected_peers:
                     self.peers.discard(peer)
                     self.sent_song_list.pop(peer, None)
@@ -119,12 +121,18 @@ class Peer(QObject):
             self.get_peers_from_tracker()
 
             for peer in self.peers:
-                peer_addr = tuple(peer.split(':'))
-                peer_addr = (peer_addr[0], int(peer_addr[1]))
+                if ':' in peer:  # Check if the peer string contains a colon
+                    peer_addr = tuple(peer.split(':'))
+                    try:
+                        peer_addr = (peer_addr[0], int(peer_addr[1]))
+                    except IndexError:
+                        print(f"Invalid peer address: {peer}")
+                        continue
 
-                thread_pool.submit(self.handle_peer, peer_addr)
+                    thread_pool.submit(self.handle_peer, peer_addr)
 
             time.sleep(5)  # Add a delay between each iteration
+
 
     def update_received_song_list(self, received_song_list):
         self.received_song_list = received_song_list

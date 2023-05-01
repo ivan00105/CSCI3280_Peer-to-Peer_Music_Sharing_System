@@ -19,6 +19,7 @@ class Tracker:
         self.host = host
         self.port = port
         self.peers = set()
+        self.disconnected_peers = set()
         self.peer_timestamps = {}
 
     def start(self):
@@ -35,6 +36,11 @@ class Tracker:
                     if command == "REGISTER":
                         if args:
                             peer_addr = args[0]
+
+                            # Remove from disconnected_peers if it was previously disconnected
+                            if peer_addr in self.disconnected_peers:
+                                self.disconnected_peers.discard(peer_addr)
+
                             self.peers.add(peer_addr)
                             self.peer_timestamps[peer_addr] = time.time()
                             response = "OK"
@@ -43,8 +49,19 @@ class Tracker:
                     elif command == "GET_PEERS":
                         # Remove peers that have timed out (e.g., 2 minutes)
                         current_time = time.time()
-                        self.peers = {peer for peer in self.peers if current_time - self.peer_timestamps[peer] < 120}
-                        response = ','.join(self.peers)
+                        timed_out_peers = {peer for peer in self.peers if current_time - self.peer_timestamps[peer] >= 120}
+
+                        # Update the peers and disconnected_peers sets
+                        self.peers -= timed_out_peers
+                        self.disconnected_peers |= timed_out_peers
+
+                        # Clear the timestamps for disconnected peers
+                        for peer in timed_out_peers:
+                            self.peer_timestamps.pop(peer, None)
+
+                        connected_peers = ','.join(self.peers)
+                        disconnected_peers = ','.join(self.disconnected_peers)
+                        response = f"{connected_peers}|{disconnected_peers}"
                     else:
                         response = "INVALID_COMMAND"
 
@@ -55,7 +72,6 @@ class Tracker:
                     print(f"Error: {e}")
                 finally:
                     client_socket.close()
-
 
 
 tracker = Tracker("0.0.0.0", 50000)
