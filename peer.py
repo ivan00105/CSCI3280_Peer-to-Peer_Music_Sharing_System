@@ -15,6 +15,7 @@ class Peer(QObject):
         self.tracker_host = tracker_host
         self.tracker_port = tracker_port
         self.peers = set()
+        self.sent_song_list = {}
         self.music_player = music_player
         self.song_list_received.connect(music_player.update_merged_song_list)
 
@@ -93,13 +94,23 @@ class Peer(QObject):
             print(f"Received song list: {song_list}")
             self.song_list_received.emit(song_list)
 
+    def should_send_song_list(self, peer_addr):
+        if peer_addr not in self.sent_song_list:
+            self.sent_song_list[peer_addr] = False
+        return not self.sent_song_list[peer_addr]
+
     def start_client(self):
+        self.sent_song_list = {}
         while True:
             self.get_peers_from_tracker()
             for peer in self.peers:
                 peer_addr = tuple(peer.split(':'))
                 peer_addr = (peer_addr[0], int(peer_addr[1]))
-                self.connect_to_peer(peer_addr)
+
+                if self.should_send_song_list(peer_addr):
+                    self.connect_to_peer(peer_addr)
+                    self.sent_song_list[peer_addr] = True
+
             time.sleep(5)  # Add a delay between each iteration
 
     def update_received_song_list(self, received_song_list):
@@ -114,6 +125,7 @@ class Peer(QObject):
                 sock.settimeout(5)  # Set a timeout for the socket connection
                 sock.connect((host, port))
                 sock.sendall(json.dumps(song_list).encode())
+                print("song list sent")
             except Exception as e:
                 print(f"Error sending song list: {e}")
 
