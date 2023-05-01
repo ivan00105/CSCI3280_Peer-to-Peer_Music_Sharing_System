@@ -632,9 +632,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
     def add_received_songs(self, song_list):
         if not song_list:
             return
-
-        local_song_paths = set([song['path'] for song in self.local_path_list])
-
+        local_song_paths = set(self.local_path_list)
         for item in song_list:
             file_path = item['path']
             file_name = os.path.basename(file_path)
