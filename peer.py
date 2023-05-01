@@ -74,6 +74,7 @@ class Peer(QObject):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             try:
                 host, port = peer_addr.split(':')
+                sock.settimeout(5)  # Set a timeout for the socket connection
                 sock.connect((host, int(port)))
                 sock.sendall(json.dumps(song_list).encode())
             except Exception as e:
@@ -87,6 +88,7 @@ class Peer(QObject):
         except Exception as e:
             print(f"Error receiving song list: {e}")
             return None
+
 
 
 

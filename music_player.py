@@ -602,15 +602,11 @@ class MusicPlayer(QtWidgets.QMainWindow):
 
     def update_peers_and_song_lists(self):
         while True:
-            new_peers = self.peer.get_peers_from_tracker()
-            if new_peers:
-                # Update peers and remove duplicates, ignore empty strings
-                self.peer.peers = list(set([p for p in new_peers if p]))
+            self.peer.get_peers_from_tracker()
 
             self.received_song_list.clear()  # Clear the list before updating
 
             for peer_addr in self.peer.peers:
-                print(f"Current peers: {self.peer.peers}")
                 if not peer_addr:  # Skip empty strings
                     continue
                 ip, port_str = peer_addr.split(':')
