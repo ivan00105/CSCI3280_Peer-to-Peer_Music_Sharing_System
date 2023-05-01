@@ -129,17 +129,14 @@ class Peer(QObject):
             except Exception as e:
                 print(f"Error sending song list: {e}")
 
-    def receive_song_list(self, client_addr):
+    def receive_song_list(self, client_socket):
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
-                client_socket.connect(client_addr)
-                data = client_socket.recv(4096)
-                song_list = json.loads(data.decode())
-                return song_list
+            data = client_socket.recv(4096)
+            song_list = json.loads(data.decode())
+            return song_list
         except Exception as e:
-            print(f"Error getting songs from client_socket {client_addr}: {e}")
+            print(f"Error getting songs from client_socket {client_socket}: {e}")
             return None
-
 
     def connect_to_peer(self, peer_addr):
         try:
