@@ -59,7 +59,8 @@ class Peer(QObject):
             time.sleep(1)
 
     def handle_client(self, client_socket):
-        song_list = self.receive_song_list(client_socket)
+        peer_addr = client_socket.getpeername()
+        song_list = self.receive_song_list(peer_addr)
         if song_list is not None:
             print(f"Received song list: {song_list}")
             self.song_list_received.emit(song_list)
