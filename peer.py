@@ -8,16 +8,14 @@ from PyQt5.QtCore import QObject, pyqtSignal
 class Peer(QObject):
     song_list_received = pyqtSignal(list)
 
-    def __init__(self, port, tracker_host, tracker_port, music_player):
+    def __init__(self, server_port, tracker_host, tracker_port, music_player):
         super().__init__()
-        self.port = port
+        self.server_port = server_port
         self.tracker_host = tracker_host
         self.tracker_port = tracker_port
         self.peers = set()
         self.music_player = music_player
         self.song_list_received.connect(music_player.update_merged_song_list)
-
-
 
     def register_with_tracker(self):
         try:
@@ -51,7 +49,7 @@ class Peer(QObject):
 
     def start_server(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server_socket.bind(("", self.port))
+        server_socket.bind(("", self.server_port))
         server_socket.listen(5)
 
         while True:
@@ -92,13 +90,6 @@ class Peer(QObject):
             except Exception as e:
                 print(f"Error getting songs from peer {peer_addr}: {e}")
                 return None
-
-
-
-
-
-
-
 
 
 
