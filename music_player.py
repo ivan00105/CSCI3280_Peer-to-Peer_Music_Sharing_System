@@ -615,64 +615,48 @@ class MusicPlayer(QtWidgets.QMainWindow):
             self.ui.lyric_listWidget.addItem(item)
 
     """networking part"""
-    # def send_local_song_list_to_peers(self):
-    #     for peer_addr in self.peer.peers:
-    #         ip, port_str = peer_addr.split(':')
-    #         port = int(port_str)
-    #         self.peer.send_song_list(self.song_path_list, peer_addr)
-
-    # def update_peers_and_song_lists(self):
-    #     previous_peers = self.peer.peers.copy()
-    #     self.peer.get_peers_from_tracker()
-
-    #     new_peers = self.peer.peers - previous_peers
-    #     for new_peer in new_peers:
-    #         self.peer.send_song_list(self.song_path_list, new_peer)
-
-    #     self.received_song_list.clear()  # Clear the list before updating
-
-    #     for peer_addr in self.peer.peers:
-    #         if not peer_addr:  # Skip empty strings
-    #             continue
-    #         ip, port_str = peer_addr.split(':')
-    #         port = int(port_str)
-    #         received_songs = self.peer.receive_song_list((ip, int(port)))
-
-    #         if received_songs:
-    #             self.received_song_list.extend(received_songs)
-
-    #     self.select_songs(self.ui.search_field.text())
-
-    # def get_songs_from_peer(self, peer_addr):
-    #     try:
-    #         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-    #             sock.connect(peer_addr)
-    #             return self.peer.receive_song_list(sock)
-    #     except Exception as e:
-    #         print(f"Error getting songs from peer {peer_addr}: {e}")
-    #         return None
     def update_received_song_list(self, song_list):
-        self.received_song_list = song_list
+        self.received_song_list = self.filter_remote_songs(song_list)
 
         # Execute the UI update on the main thread
-        QtCore.QTimer.singleShot(0, lambda: self.add_received_songs(song_list))
+        QtCore.QTimer.singleShot(0, lambda: self.add_received_songs(self.received_song_list))
+
+    def filter_remote_songs(self, remote_songs):
+        filtered_songs = []
+        local_song_paths = set([song['path'] for song in self.local_path_list])
+
+        for song in remote_songs:
+            file_name = os.path.basename(song['path'])
+            local_file_path = os.path.join(self.directory_path, file_name)
+
+            if local_file_path not in local_song_paths:
+                filtered_songs.append(song)
+
+        return filtered_songs
 
     def add_received_songs(self, song_list):
-        for item in song_list:
-            icon_path = "images/cloud.png"
-            icon = QIcon(icon_path)
-            item_text = f"{item['title']}\n- {item['artist']}"
-            item_w = QListWidgetItem()
-            item_w.setText(item_text)
-            item_w.setIcon(icon)
-            self.ui.playlist_listWidget.addItem(item_w)
+        local_song_paths = set([song['path'] for song in self.local_path_list])
 
-            self.song_path_list.append({
-                'index': self.local_songs_count,
-                'path': item['path'],
-                'is_local': False
-            })
-            self.local_songs_count += 1
+        for item in song_list:
+            file_path = item['path']
+            file_name = os.path.basename(file_path)
+            local_file_path = os.path.join(self.directory_path, file_name)
+
+            if local_file_path not in local_song_paths:
+                icon_path = "images/cloud.png"
+                icon = QIcon(icon_path)
+                item_text = file_name
+                item_w = QListWidgetItem()
+                item_w.setText(item_text)
+                item_w.setIcon(icon)
+                self.ui.playlist_listWidget.addItem(item_w)
+
+                self.song_path_list.append({
+                    'index': self.local_songs_count,
+                    'path': item['path'],
+                    'is_local': False
+                })
+                self.local_songs_count += 1
 
     def update_merged_song_list(self, received_song_list):
         # Merge the received song list with the local song list
