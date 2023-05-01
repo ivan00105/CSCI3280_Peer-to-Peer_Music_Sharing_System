@@ -621,16 +621,17 @@ class MusicPlayer(QtWidgets.QMainWindow):
         # Execute the UI update on the main thread
         QtCore.QTimer.singleShot(0, lambda: self.add_received_songs(self.received_song_list))
 
-    def filter_remote_songs(self, remote_songs):
-        filtered_songs = []
-        local_song_paths = set([song['path'] for song in self.local_path_list])
+    def filter_remote_songs(self, song_list):
+        local_song_paths = set(self.local_path_list)
 
-        for song in remote_songs:
-            file_name = os.path.basename(song['path'])
+        filtered_songs = []
+        for item in song_list:
+            file_path = item['path']
+            file_name = os.path.basename(file_path)
             local_file_path = os.path.join(self.directory_path, file_name)
 
             if local_file_path not in local_song_paths:
-                filtered_songs.append(song)
+                filtered_songs.append(item)
 
         return filtered_songs
 
