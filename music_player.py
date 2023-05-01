@@ -637,22 +637,22 @@ class MusicPlayer(QtWidgets.QMainWindow):
             file_path = item['path']
             file_name = os.path.basename(file_path)
             local_file_path = os.path.join(self.directory_path, file_name)
-            for local_song in local_song_paths:
-                if file_name not in local_song:
-                    icon_path = "images/cloud.png"
-                    icon = QIcon(icon_path)
-                    item_text = file_name
-                    item_w = QListWidgetItem()
-                    item_w.setText(item_text)
-                    item_w.setIcon(icon)
-                    self.ui.playlist_listWidget.addItem(item_w)
+            print("self.directory_path", self.directory_path)
+            if local_file_path not in local_song_paths:
+                icon_path = "images/cloud.png"
+                icon = QIcon(icon_path)
+                item_text = file_name
+                item_w = QListWidgetItem()
+                item_w.setText(item_text)
+                item_w.setIcon(icon)
+                self.ui.playlist_listWidget.addItem(item_w)
 
-                    self.song_path_list.append({
-                        'index': self.local_songs_count,
-                        'path': item['path'],
-                        'is_local': False
-                    })
-                    self.local_songs_count += 1
+                self.song_path_list.append({
+                    'index': self.local_songs_count,
+                    'path': item['path'],
+                    'is_local': False
+                })
+                self.local_songs_count += 1
 
     def update_merged_song_list(self, received_song_list):
         # Merge the received song list with the local song list
