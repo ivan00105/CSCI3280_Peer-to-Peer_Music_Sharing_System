@@ -636,6 +636,9 @@ class MusicPlayer(QtWidgets.QMainWindow):
         return filtered_songs
 
     def add_received_songs(self, song_list):
+        if not song_list:
+            return
+        
         local_song_paths = set([song['path'] for song in self.local_path_list])
 
         for item in song_list:
