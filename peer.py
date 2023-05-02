@@ -140,7 +140,6 @@ class Peer(QObject):
 
     def start_client(self):
         self.sent_song_list = {}
-        thread_pool = ThreadPoolExecutor(max_workers=10)  # Adjust the number of workers as needed
 
         while True:
             self.get_peers_from_tracker()
@@ -153,7 +152,7 @@ class Peer(QObject):
                     self.peers.remove(peer)
                     self.sent_song_list.pop(peer, None)
                 else:
-                    thread_pool.submit(self.handle_peer, peer_addr)
+                    threading.Thread(target=self.handle_peer, args=(peer_addr,), name="handle_peer").start()
 
             time.sleep(1)  # Add a delay between each iteration
 

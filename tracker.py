@@ -47,9 +47,8 @@ class Tracker:
                         else:
                             response = "INVALID_ARGUMENTS"
                     elif command == "GET_PEERS":
-                        # Remove peers that have timed out (e.g., 2 minutes)
                         current_time = time.time()
-                        timed_out_peers = {peer for peer in self.peers if current_time - self.peer_timestamps[peer] >= 120}
+                        timed_out_peers = {peer for peer in self.peers if current_time - self.peer_timestamps[peer] >= 20}
 
                         # Update the peers and disconnected_peers sets
                         self.peers -= timed_out_peers
