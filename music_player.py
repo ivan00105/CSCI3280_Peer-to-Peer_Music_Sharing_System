@@ -637,7 +637,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
             file_path = item['path']
             file_name = os.path.basename(file_path)
             local_file_path = os.path.normpath(os.path.join(self.directory_path, file_name))
-            if local_file_path not in local_song_paths:
+            if local_file_path not in [os.path.normpath(x) for x in local_song_paths]:
                 icon_path = "images/cloud.png"
                 icon = QIcon(icon_path)
                 item_text = file_name
