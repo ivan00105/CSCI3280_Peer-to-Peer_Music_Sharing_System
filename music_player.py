@@ -17,6 +17,8 @@ from songs import Song
 from edit_song_details import EditFile
 from peer import Peer
 from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import QBuffer, QIODevice
+
 
 import threading
 import time
@@ -539,12 +541,31 @@ class MusicPlayer(QtWidgets.QMainWindow):
             #TODO
             self.peer.request_song(song_dict['path'])
 
-    def play_received_song(self, song_data, song_name):
-        song_path = os.path.join(self.temp_dir, song_name)
+    def save_song_to_file(self, song_data, song_name):
+        song_path = os.path.join(self.directory_path, song_name)
         with open(song_path, 'wb') as file:
             file.write(song_data)
-        self.song_current_path = song_path
+
+    def play_received_song(self, song_data, song_name):
+        # Create a new thread to save the received song to a file
+        save_thread = threading.Thread(target=self.save_song_to_file, args=(song_data, song_name))
+        save_thread.start()
+
+        # Create a QBuffer to store the received song data
+        self.buffer = QBuffer()
+        self.buffer.open(QIODevice.ReadWrite)
+        self.buffer.write(song_data)
+
+        # Seek to the beginning of the buffer
+        self.buffer.seek(0)
+
+        # Set the media player to use the buffer as the source
+        self.media_player.setMedia(QMediaContent(None), self.buffer)
+
+        # Play the song
         self.play_init()
+
+
 
     def info_double_clicked(self):
         if self.song_current_path:

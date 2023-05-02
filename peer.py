@@ -236,7 +236,7 @@ class Peer(QObject):
                 while data:
                     received_data += data
                     data = sock.recv(4096)
-                    print(f"Received data chunk, size: {len(data)}")
+                    # print(f"Received data chunk, size: {len(data)}")
 
                 print(f"Total data received: {len(received_data)}")
                 return received_data
