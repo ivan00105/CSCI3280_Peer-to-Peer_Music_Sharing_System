@@ -27,6 +27,9 @@ class Peer(QObject):
         # Forward the server_port using UPnP
         self.forward_port_using_upnp()
 
+        threading.Thread(target=self.process_song_request_queue, name="process_song_request_queue", daemon=True).start()
+
+
     def forward_port_using_upnp(self):
         eport = self.server_port  # External port
         iport = self.server_port  # Internal port
@@ -106,22 +109,20 @@ class Peer(QObject):
     def handle_client(self, client_socket, client_addr):
         try:
             data = client_socket.recv(4096).decode()
-            command, *args = data.split()
-            if command == "SONG_LIST":
-                song_list = json.loads(" ".join(args))
+            if data.startswith("SONG_LIST"):
+                song_list = json.loads(data[9:])
                 if song_list is not None:
                     print(f"Received song list: {song_list}")
                     for song in song_list:
                         song['is_local'] = False
                     self.song_list_received.emit(song_list)
-            elif command == "REQUEST_SONG":
-                song_name = " ".join(args).strip()
+            elif data.startswith("REQUEST_SONG"):
+                song_name = data[12:].strip()
                 self.handle_song_request(song_name, client_socket)
         except Exception as e:
             print(f"Error in handle_client: {e}")
         finally:
             client_socket.close()
-
 
 
     def should_send_song_list(self, peer_addr):
@@ -140,6 +141,7 @@ class Peer(QObject):
 
     def start_client(self):
         self.sent_song_list = {}
+        thread_pool = ThreadPoolExecutor(max_workers=10)  # Adjust the number of workers as needed
 
         while True:
             self.get_peers_from_tracker()
@@ -152,7 +154,7 @@ class Peer(QObject):
                     self.peers.remove(peer)
                     self.sent_song_list.pop(peer, None)
                 else:
-                    threading.Thread(target=self.handle_peer, args=(peer_addr,), name="handle_peer").start()
+                    thread_pool.submit(self.handle_peer, peer_addr)
 
             time.sleep(1)  # Add a delay between each iteration
 
@@ -203,17 +205,18 @@ class Peer(QObject):
             peer_addr = tuple(peer.split(':'))
             peer_addr = (peer_addr[0], int(peer_addr[1]))
             self.song_request_queue.put((song_name, peer_addr))
-
-        threading.Thread(target=self.process_song_request_queue).start()
+        # threading.Thread(target=self.process_song_request_queue).start()
     
 
     def process_song_request_queue(self):
-        while not self.song_request_queue.empty():
-            song_name, peer_addr = self.song_request_queue.get()
-            received_data = self.send_song_request(song_name, peer_addr)
-            if received_data:
-                self.music_player.play_received_song(received_data, song_name)
-                break
+        while True:
+            while not self.song_request_queue.empty():
+                song_name, peer_addr = self.song_request_queue.get()
+                received_data = self.send_song_request(song_name, peer_addr)
+                if received_data:
+                    self.music_player.play_received_song(received_data, song_name)
+                    break
+            time.sleep(1)  # Add a delay between each iteration
 
 
     def send_song_request(self, song_name, peer_addr):
@@ -250,6 +253,8 @@ class Peer(QObject):
                 except Exception as e:
                     print(f"Error sending song file: {e}")
                 break
+
+
 
 
 
