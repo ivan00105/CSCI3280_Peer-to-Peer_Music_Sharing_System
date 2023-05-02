@@ -26,6 +26,8 @@ import threading
 import time
 import socket
 import pyaudio
+from queue import Queue
+
 
 # class UpdatePeersThread(QThread):
 #     def __init__(self, music_player):
@@ -616,11 +618,21 @@ class MusicPlayer(QtWidgets.QMainWindow):
         # Calculate the buffer size for 50% of the song
         buffer_size = int(len(song_data) * 0.5)
 
-        # Play the song using PyAudio
+        # Create a queue to store the audio chunks
+        audio_queue = Queue()
+
+        # Function to read the audio chunks and put them in the queue
+        def read_audio():
+            while True:
+                data = self.buffer.read(buffer_size)
+                if not data:
+                    break
+                audio_queue.put(data)
+
+        # Function to play the audio chunks from the queue
         def play_audio():
             while True:
-                # Read the data from the buffer
-                data = self.buffer.read(buffer_size)
+                data = audio_queue.get()
                 if not data:
                     break
                 stream.write(data)
@@ -630,9 +642,14 @@ class MusicPlayer(QtWidgets.QMainWindow):
             stream.close()
             p.terminate()
 
-        # Start playing the song in a new thread
+        # Start reading the audio chunks in a new thread
+        read_thread = threading.Thread(target=read_audio)
+        read_thread.start()
+
+        # Start playing the audio chunks in a new thread
         play_thread = threading.Thread(target=play_audio)
         play_thread.start()
+
 
 
     def play_received_song(self, song_data, song_name):
