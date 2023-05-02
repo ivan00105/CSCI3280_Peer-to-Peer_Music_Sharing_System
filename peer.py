@@ -226,14 +226,19 @@ class Peer(QObject):
                 sock.settimeout(5)  # Set a timeout for the socket connection
                 sock.connect((host, port))
                 message = f"REQUEST_SONG {song_name}\n"
+                print(f"Sending song request '{song_name}' to {peer_addr}")
                 sock.sendall(message.encode())
-                print(f"Song request '{song_name}' sent to {peer_addr}")
+                print(f"Sent song request '{song_name}' to {peer_addr}")
 
                 received_data = b""
                 data = sock.recv(4096)
+                print(f"Received data chunk, size: {len(data)}")
                 while data:
                     received_data += data
                     data = sock.recv(4096)
+                    print(f"Received data chunk, size: {len(data)}")
+
+                print(f"Total data received: {len(received_data)}")
                 return received_data
             except Exception as e:
                 print(f"Error sending song request: {e}")
