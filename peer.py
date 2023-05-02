@@ -27,6 +27,10 @@ class Peer(QObject):
         # Forward the server_port using UPnP
         self.forward_port_using_upnp()
 
+        threading.Thread(target=self.start_server, name="start_server").start()
+        # Start the client
+        threading.Thread(target=self.start_client, name="start_client").start()
+
     def forward_port_using_upnp(self):
         eport = self.server_port  # External port
         iport = self.server_port  # Internal port
