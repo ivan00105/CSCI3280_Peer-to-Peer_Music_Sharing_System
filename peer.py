@@ -100,17 +100,23 @@ class Peer(QObject):
             server_socket.close()
 
     def handle_client(self, client_socket, client_addr):
-        data = client_socket.recv(4096).decode()
-        if data.startswith("SONG_LIST"):
-            song_list = self.receive_song_list(data[9:])
-            if song_list is not None:
-                print(f"Received song list: {song_list}")
-                for song in song_list:
-                    song['is_local'] = False
-                self.song_list_received.emit(song_list)
-        elif data.startswith("REQUEST_SONG"):
-            song_name = data[12:].strip()
-            self.handle_song_request(song_name, client_socket)
+        try:
+            data = client_socket.recv(4096).decode()
+            if data.startswith("SONG_LIST"):
+                song_list = json.loads(data[9:])
+                if song_list is not None:
+                    print(f"Received song list: {song_list}")
+                    for song in song_list:
+                        song['is_local'] = False
+                    self.song_list_received.emit(song_list)
+            elif data.startswith("REQUEST_SONG"):
+                song_name = data[12:].strip()
+                self.handle_song_request(song_name, client_socket)
+        except Exception as e:
+            print(f"Error in handle_client: {e}")
+        finally:
+            client_socket.close()
+
 
     def should_send_song_list(self, peer_addr):
         if peer_addr not in self.sent_song_list:
@@ -156,11 +162,11 @@ class Peer(QObject):
                 host, port = peer_addr
                 sock.settimeout(5)  # Set a timeout for the socket connection
                 sock.connect((host, port))
-                sock.sendall(json.dumps(song_list).encode())
-                print("song list sent")
+                message = "SONG_LIST" + json.dumps(song_list)
+                sock.sendall(message.encode())
+                print("Song list sent")
             except Exception as e:
                 print(f"Error sending song list: {e}")
-
 
     def receive_song_list(self, client_socket):
         try:
@@ -185,8 +191,7 @@ class Peer(QObject):
             print(f"Error: {e}")
             ip = "Unknown"
         return ip
-    
-    
+
     
     def request_song(self, song_name):
         for peer in list(self.peers):
