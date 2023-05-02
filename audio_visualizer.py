@@ -66,7 +66,7 @@ class AudioVisualizer(QMainWindow):
         self.ax.set_xticklabels([])
         self.ax.set_yticklabels([])
         self.ax.set_frame_on(False)
-        self.line, = self.ax.plot(np.zeros(self.blocksize), color='red')
+        self.line, = self.ax.plot(np.zeros(self.blocksize), color='green')
         # Create an animation for updating the plot
         self.ani = animation.FuncAnimation(self.figure, self.audio_callback, frames=self.total_frames(),
                                    repeat=False, blit=False, interval=10)
