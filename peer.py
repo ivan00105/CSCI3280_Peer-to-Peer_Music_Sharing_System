@@ -6,6 +6,7 @@ import pickle
 from PyQt5.QtCore import QObject, pyqtSignal
 from upnp_port_forward import forwardPort
 from concurrent.futures import ThreadPoolExecutor
+import os
 
 class Peer(QObject):
     song_list_received = pyqtSignal(list)
@@ -213,7 +214,7 @@ class Peer(QObject):
 
     def handle_song_request(self, song_name, client_socket):
         for song in self.music_player.song_path_list:
-            if song['name'] == song_name and song['is_local']:
+            if os.path.basename(song['path']) == song_name and song['is_local']:
                 # TODO: Stream the song to the client_socket
                 pass
 

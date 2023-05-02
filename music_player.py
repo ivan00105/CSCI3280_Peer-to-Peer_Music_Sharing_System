@@ -683,6 +683,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
                     break
             if song_is_new:
                 song['is_local'] = False
+                song['path'] = os.path.basename(song['path'])
                 self.song_path_list.append(song)
 
         # Update the user interface or any other components that depend on the song list
