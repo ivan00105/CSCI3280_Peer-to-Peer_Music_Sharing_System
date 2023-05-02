@@ -198,7 +198,12 @@ class Peer(QObject):
         for peer in list(self.peers):
             peer_addr = tuple(peer.split(':'))
             peer_addr = (peer_addr[0], int(peer_addr[1]))
-            threading.Thread(target=self.send_song_request, args=(song_name, peer_addr)).start()
+            song_data = self.send_song_request(song_name, peer_addr)
+            if song_data:
+                return song_data
+        print(f"Failed to receive '{song_name}' from any peer.")
+        return None
+
 
     def send_song_request(self, song_name, peer_addr):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
