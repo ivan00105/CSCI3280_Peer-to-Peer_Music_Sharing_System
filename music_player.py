@@ -419,7 +419,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
             self.song_path_list.append({
                 'index': count,
                 'path': "NA",
-                'is_local': True
+                'is_local': False
             })
             count += 1
 
