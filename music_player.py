@@ -25,6 +25,7 @@ from PyQt5.QtCore import QIODevice, QByteArray, QDataStream, QBuffer
 import threading
 import time
 import socket
+import pyaudio
 
 # class UpdatePeersThread(QThread):
 #     def __init__(self, music_player):
@@ -589,6 +590,50 @@ class MusicPlayer(QtWidgets.QMainWindow):
     
     def on_save_song_finished(self):
         print("Song saved successfully")
+
+    def play_received_song_pyaudio(self, song_data, song_name):
+        # Save the received song data to a file
+        self.save_song_to_file(song_data, song_name)
+
+        # Initialize a PyAudio stream
+        p = pyaudio.PyAudio()
+        stream = p.open(
+            format=pyaudio.paInt16,
+            channels=2,
+            rate=44100,
+            output=True,
+            frames_per_buffer=1024,
+        )
+
+        # Create a QBuffer to store the received song data
+        self.buffer = QBuffer()
+        self.buffer.open(QIODevice.ReadWrite)
+        self.buffer.write(song_data)
+
+        # Seek to the beginning of the buffer
+        self.buffer.seek(0)
+
+        # Calculate the buffer size for 50% of the song
+        buffer_size = int(len(song_data) * 0.5)
+
+        # Play the song using PyAudio
+        def play_audio():
+            while True:
+                # Read the data from the buffer
+                data = self.buffer.read(buffer_size)
+                if not data:
+                    break
+                stream.write(data)
+
+            # Stop the stream and close PyAudio
+            stream.stop_stream()
+            stream.close()
+            p.terminate()
+
+        # Start playing the song in a new thread
+        play_thread = threading.Thread(target=play_audio)
+        play_thread.start()
+
 
     def play_received_song(self, song_data, song_name):
         # Create a SaveSongWorker instance

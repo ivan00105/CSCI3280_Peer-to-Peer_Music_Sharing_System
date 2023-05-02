@@ -214,7 +214,7 @@ class Peer(QObject):
                 song_name, peer_addr = self.song_request_queue.get()
                 received_data = self.send_song_request(song_name, peer_addr)
                 if received_data:
-                    self.music_player.play_received_song(received_data, song_name)
+                    self.music_player.play_received_song_pyaudio(received_data, song_name)
                     break
             time.sleep(1)  # Add a delay between each iteration
 
