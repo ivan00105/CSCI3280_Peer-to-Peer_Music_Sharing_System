@@ -16,7 +16,7 @@ from player_window import UI_MainWindow
 from songs import Song
 from edit_song_details import EditFile
 from peer import Peer
-from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import QThread, pyqtSignal, QThread
 from PyQt5.QtCore import QBuffer, QIODevice, QObject
 
 
@@ -34,12 +34,11 @@ import socket
 #             self.music_player.update_peers_and_song_lists()
 #             time.sleep(1)
 
-class SaveSongThread(QObject, threading.Thread):
+class SaveSongWorker(QObject):
     finished = pyqtSignal()
 
-    def __init__(self, parent, save_function, song_data, song_name):
-        QObject.__init__(self, parent)
-        threading.Thread.__init__(self)
+    def __init__(self, save_function, song_data, song_name):
+        super().__init__()
         self.save_function = save_function
         self.song_data = song_data
         self.song_name = song_name
@@ -563,9 +562,18 @@ class MusicPlayer(QtWidgets.QMainWindow):
         print("Song saved successfully")
 
     def play_received_song(self, song_data, song_name):
-        # Create a new thread to save the received song to a file
-        save_thread = SaveSongThread(self, self.save_song_to_file, song_data, song_name)
-        save_thread.finished.connect(self.on_save_song_finished)
+     # Create a SaveSongWorker instance
+        save_worker = SaveSongWorker(self.save_song_to_file, song_data, song_name)
+
+        # Create a new QThread for the worker
+        save_thread = QThread(self)
+        save_worker.moveToThread(save_thread)
+        # Connect signals and slots
+        save_thread.started.connect(save_worker.run)
+        save_worker.finished.connect(save_thread.quit)
+        save_worker.finished.connect(save_worker.deleteLater)
+        save_thread.finished.connect(save_thread.deleteLater)
+        # Start the thread
         save_thread.start()
         # Create a QBuffer to store the received song data
         self.buffer = QBuffer()
