@@ -631,6 +631,10 @@ class MusicPlayer(QtWidgets.QMainWindow):
 
         # Function to play the audio chunks from the queue
         def play_audio():
+            # Wait until enough data is buffered
+            while audio_queue.qsize() < MIN_BUFFER_SIZE:
+                time.sleep(0.1)
+
             while True:
                 data = audio_queue.get()
                 if not data:
