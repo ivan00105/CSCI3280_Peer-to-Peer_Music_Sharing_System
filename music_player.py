@@ -668,7 +668,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
                 self.all_received_song_list.append(file_name)
                 self.song_path_list.append({
                     'index': self.local_songs_count,
-                    'path': item['path'],
+                    'path': file_name,
                     'is_local': False
                 })
                 self.local_songs_count += 1
