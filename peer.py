@@ -243,6 +243,7 @@ class Peer(QObject):
     def handle_song_request(self, song_name, client_socket):
         print("HANDLING REQUEST!!!!")
         for song in self.music_player.song_path_list:
+            print("PATH LIST", os.path.basename(song['path']), song_name)
             if os.path.basename(song['path']) == song_name and song['is_local']:
                 try:
                     with open(song['path'], 'rb') as file:
