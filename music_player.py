@@ -527,9 +527,9 @@ class MusicPlayer(QtWidgets.QMainWindow):
         is_local = song_dict['is_local']
 
         if is_local:
-            # Handle local song playback
-            if self.play_mode == 2:  # random
-                random.shuffle(self.song_path_playlist)
+            # # Handle local song playback
+            # if self.play_mode == 2:  # random
+            #     random.shuffle(self.song_path_playlist)
 
             for item in self.song_path_playlist:
                 if item['path'] == self.song_current_path:
@@ -537,11 +537,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
             self.play_init()
         else:
             #TODO
-            song_data = self.peer.request_song(song_dict['path'])
-            if song_data:
-                self.play_received_song(song_data, os.path.basename(song_dict['path']))
-            else:
-                print("Failed to receive song from peers.")
+            self.peer.request_song(song_dict['path'])
 
     def play_received_song(self, song_data, song_name):
         song_path = os.path.join(self.temp_dir, song_name)

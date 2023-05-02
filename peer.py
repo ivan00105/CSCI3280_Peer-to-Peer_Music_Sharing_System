@@ -7,6 +7,8 @@ from PyQt5.QtCore import QObject, pyqtSignal
 from upnp_port_forward import forwardPort
 from concurrent.futures import ThreadPoolExecutor
 import os
+from queue import Queue
+
 
 class Peer(QObject):
     song_list_received = pyqtSignal(list)
@@ -20,6 +22,7 @@ class Peer(QObject):
         self.sent_song_list = {}
         self.music_player = music_player
         self.song_list_received.connect(music_player.update_merged_song_list)
+        self.song_request_queue = Queue()
 
         # Forward the server_port using UPnP
         self.forward_port_using_upnp()
@@ -198,11 +201,18 @@ class Peer(QObject):
         for peer in list(self.peers):
             peer_addr = tuple(peer.split(':'))
             peer_addr = (peer_addr[0], int(peer_addr[1]))
-            song_data = self.send_song_request(song_name, peer_addr)
-            if song_data:
-                return song_data
-        print(f"Failed to receive '{song_name}' from any peer.")
-        return None
+            self.song_request_queue.put((song_name, peer_addr))
+
+        threading.Thread(target=self.process_song_request_queue).start()
+    
+
+    def process_song_request_queue(self):
+        while not self.song_request_queue.empty():
+            song_name, peer_addr = self.song_request_queue.get()
+            received_data = self.send_song_request(song_name, peer_addr)
+            if received_data:
+                self.music_player.play_received_song(received_data, song_name)
+                break
 
 
     def send_song_request(self, song_name, peer_addr):
