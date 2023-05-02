@@ -373,7 +373,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
     def select_songs(self, text):
         cloud_item_lst = []
         for received_item in self.all_received_song_list:
-            if text in received_item.text():
+            if text in received_item:
                 cloud_item_lst.append(received_item)
 
         with SqliteDB() as us:
@@ -394,7 +394,6 @@ class MusicPlayer(QtWidgets.QMainWindow):
         count = 0
         for item in result:
             icon_path = "images/local.png"
-
             icon = QIcon(icon_path)
             item_text = f"{item['title']}\n- {item['artist']}"
             item_w = QListWidgetItem()
@@ -410,8 +409,15 @@ class MusicPlayer(QtWidgets.QMainWindow):
             count += 1
 
         for item in cloud_item_lst:
-            self.ui.playlist_listWidget.addItem(item)
+            icon_path = "images/cloud.png"
+            icon = QIcon(icon_path)
+            item_text = item
+            item_w = QListWidgetItem()
+            item_w.setText(item_text)
+            item_w.setIcon(icon)
+            self.ui.playlist_listWidget.addItem(item_w)
             count += 1
+
         self.local_songs_count = count
 
 
@@ -654,7 +660,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
                 item_w.setText(item_text)
                 item_w.setIcon(icon)
                 self.ui.playlist_listWidget.addItem(item_w)
-                self.all_received_song_list.append(item_w)
+                self.all_received_song_list.append(file_name)
                 self.song_path_list.append({
                     'index': self.local_songs_count,
                     'path': item['path'],
