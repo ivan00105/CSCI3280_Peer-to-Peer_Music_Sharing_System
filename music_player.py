@@ -416,6 +416,11 @@ class MusicPlayer(QtWidgets.QMainWindow):
             item_w.setText(item_text)
             item_w.setIcon(icon)
             self.ui.playlist_listWidget.addItem(item_w)
+            self.song_path_list.append({
+                'index': count,
+                'path': "NA",
+                'is_local': True
+            })
             count += 1
 
         self.local_songs_count = count
