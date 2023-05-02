@@ -209,14 +209,32 @@ class Peer(QObject):
                 message = f"REQUEST_SONG {song_name}\n"
                 sock.sendall(message.encode())
                 print(f"Song request '{song_name}' sent to {peer_addr}")
+
+                received_data = b""
+                data = sock.recv(4096)
+                while data:
+                    received_data += data
+                    data = sock.recv(4096)
+                return received_data
             except Exception as e:
                 print(f"Error sending song request: {e}")
+                return None
+
 
     def handle_song_request(self, song_name, client_socket):
         for song in self.music_player.song_path_list:
             if os.path.basename(song['path']) == song_name and song['is_local']:
-                # TODO: Stream the song to the client_socket
-                pass
+                try:
+                    with open(song['path'], 'rb') as file:
+                        data = file.read(4096)
+                        while data:
+                            client_socket.send(data)
+                            data = file.read(4096)
+                    print(f"Sent song '{song_name}' to {client_socket.getpeername()}")
+                except Exception as e:
+                    print(f"Error sending song file: {e}")
+                break
+
 
 
 # port = 12345

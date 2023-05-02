@@ -536,25 +536,19 @@ class MusicPlayer(QtWidgets.QMainWindow):
                     self.song_index = self.song_path_playlist.index(item)
             self.play_init()
         else:
-            # Handle remote song playback
-            # Implement your logic for downloading/streaming the remote song
-            # For example, you can download the song to a temporary directory and then play it:
-            self.peer.request_song(song_dict['path'])
-            # temp_song_path = self.download_remote_song(self.song_current_path)  # You need to implement this method
+            #TODO
+            song_data = self.peer.request_song(song_dict['path'])
+            if song_data:
+                self.play_received_song(song_data, os.path.basename(song_dict['path']))
+            else:
+                print("Failed to receive song from peers.")
 
-            # if temp_song_path:
-            #     self.song_current_path = temp_song_path
-
-            #     if self.play_mode == 2:  # random
-            #         random.shuffle(self.song_path_playlist)
-
-            #     for item in self.song_path_playlist:
-            #         if item['path'] == self.song_current_path:
-            #             self.song_index = self.song_path_playlist.index(item)
-            #     self.play_init()
-            # else:
-            #     print("Failed to download the remote song")
-
+    def play_received_song(self, song_data, song_name):
+        song_path = os.path.join(self.temp_dir, song_name)
+        with open(song_path, 'wb') as file:
+            file.write(song_data)
+        self.song_current_path = song_path
+        self.play_init()
 
     def info_double_clicked(self):
         if self.song_current_path:
