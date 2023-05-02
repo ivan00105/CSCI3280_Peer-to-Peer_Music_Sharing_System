@@ -100,17 +100,23 @@ class Peer(QObject):
             server_socket.close()
 
     def handle_client(self, client_socket, client_addr):
-        song_list = self.receive_song_list(client_socket)  # Change client_addr to client_socket
-        if song_list is not None:
-            print(f"Received song list: {song_list}")
-            for song in song_list:
-                song['is_local'] = False
-            self.song_list_received.emit(song_list)
+        data = client_socket.recv(4096).decode()
+        if data.startswith("SONG_LIST"):
+            song_list = self.receive_song_list(data[9:])
+            if song_list is not None:
+                print(f"Received song list: {song_list}")
+                for song in song_list:
+                    song['is_local'] = False
+                self.song_list_received.emit(song_list)
+        elif data.startswith("REQUEST_SONG"):
+            song_name = data[12:].strip()
+            self.handle_song_request(song_name, client_socket)
 
     def should_send_song_list(self, peer_addr):
         if peer_addr not in self.sent_song_list:
             self.sent_song_list[peer_addr] = False
         return not self.sent_song_list[peer_addr]
+
     def is_peer_connected(self, peer_addr):
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -179,7 +185,32 @@ class Peer(QObject):
             print(f"Error: {e}")
             ip = "Unknown"
         return ip
+    
+    
+    
+    def request_song(self, song_name):
+        for peer in list(self.peers):
+            peer_addr = tuple(peer.split(':'))
+            peer_addr = (peer_addr[0], int(peer_addr[1]))
+            threading.Thread(target=self.send_song_request, args=(song_name, peer_addr)).start()
 
+    def send_song_request(self, song_name, peer_addr):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            try:
+                host, port = peer_addr
+                sock.settimeout(5)  # Set a timeout for the socket connection
+                sock.connect((host, port))
+                message = f"REQUEST_SONG {song_name}\n"
+                sock.sendall(message.encode())
+                print(f"Song request '{song_name}' sent to {peer_addr}")
+            except Exception as e:
+                print(f"Error sending song request: {e}")
+
+    def handle_song_request(self, song_name, client_socket):
+        for song in self.music_player.song_path_list:
+            if song['name'] == song_name and song['is_local']:
+                # TODO: Stream the song to the client_socket
+                pass
 
 
 # port = 12345

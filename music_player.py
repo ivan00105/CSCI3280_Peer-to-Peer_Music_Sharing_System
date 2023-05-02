@@ -418,7 +418,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
             self.ui.playlist_listWidget.addItem(item_w)
             self.song_path_list.append({
                 'index': count,
-                'path': "NA",
+                'path': item,
                 'is_local': False
             })
             count += 1
@@ -539,7 +539,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
             # Handle remote song playback
             # Implement your logic for downloading/streaming the remote song
             # For example, you can download the song to a temporary directory and then play it:
-            pass
+            self.peer.request_song(song_dict['path'])
             # temp_song_path = self.download_remote_song(self.song_current_path)  # You need to implement this method
 
             # if temp_song_path:
@@ -678,7 +678,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
         for song in received_song_list:
             song_is_new = True
             for local_song in self.song_path_list:
-                if song['path'] == local_song['path']:
+                if os.path.basename(song['path']) == os.path.basename(local_song['path']):
                     song_is_new = False
                     break
             if song_is_new:
