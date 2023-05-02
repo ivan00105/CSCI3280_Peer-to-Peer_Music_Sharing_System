@@ -18,6 +18,8 @@ from edit_song_details import EditFile
 from peer import Peer
 from PyQt5.QtCore import QThread, pyqtSignal, QThread
 from PyQt5.QtCore import QBuffer, QIODevice, QObject
+from PyQt5.QtCore import QIODevice, QByteArray, QDataStream, QBuffer
+
 
 
 import threading
@@ -46,6 +48,33 @@ class SaveSongWorker(QObject):
     def run(self):
         self.save_function(self.song_data, self.song_name)
         self.finished.emit()
+
+class StreamingBuffer(QIODevice):
+    def __init__(self, total_data_size, parent=None):
+        super(StreamingBuffer, self).__init__(parent)
+        self.total_data_size = total_data_size
+        self.data = QByteArray()
+        self.buffer = QBuffer(self.data, self)
+        self.open(QIODevice.ReadOnly)
+
+    def writeData(self, data):
+        self.buffer.open(QIODevice.Append)
+        written = self.buffer.write(data)
+        self.buffer.close()
+
+        # Check if the buffer has reached 50% of the total data size
+        if self.buffer.size() > self.total_data_size * 0.5:
+            self.buffer.seek(0)
+            self.readyRead.emit()
+
+        return written
+
+
+    def readData(self, maxlen):
+        return self.buffer.read(maxlen)
+
+    def isSequential(self):
+        return True
 
 class MusicPlayer(QtWidgets.QMainWindow):
 
@@ -562,7 +591,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
         print("Song saved successfully")
 
     def play_received_song(self, song_data, song_name):
-     # Create a SaveSongWorker instance
+        # Create a SaveSongWorker instance
         save_worker = SaveSongWorker(self.save_song_to_file, song_data, song_name)
 
         # Create a new QThread for the worker
@@ -575,16 +604,18 @@ class MusicPlayer(QtWidgets.QMainWindow):
         save_thread.finished.connect(save_thread.deleteLater)
         # Start the thread
         save_thread.start()
-        # Create a QBuffer to store the received song data
-        self.buffer = QBuffer()
-        self.buffer.open(QIODevice.ReadWrite)
+
+        # Create a StreamingBuffer instance
+        total_data_size = len(song_data)
+        self.buffer = StreamingBuffer(total_data_size)
         self.buffer.write(song_data)
-        # Seek to the beginning of the buffer
-        self.buffer.seek(0)
+
         # Set the media player to use the buffer as the source
         self.media_player.setMedia(QMediaContent(None), self.buffer)
+
         # Play the song
         self.play_init()
+
 
 
 
