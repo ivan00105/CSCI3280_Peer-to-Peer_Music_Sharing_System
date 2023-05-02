@@ -129,6 +129,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
         # self.update_thread = UpdatePeersThread(self)
         # self.update_thread.start()
         self.received_song_list = []
+        self.all_received_song_list = []
         self.local_song_list = []
         self.client_thread = threading.Thread(target=self.peer.start_client, name="client_thread")
         self.client_thread.daemon = True
@@ -370,6 +371,11 @@ class MusicPlayer(QtWidgets.QMainWindow):
             self.select_songs(self.ui.search_field.text())
 
     def select_songs(self, text):
+        cloud_item_lst = []
+        for received_item in self.all_received_song_list:
+            if text in received_item.text():
+                cloud_item_lst.append(received_item)
+
         with SqliteDB() as us:
             text = '%{}%'.format(text)
             sql = """
@@ -403,6 +409,9 @@ class MusicPlayer(QtWidgets.QMainWindow):
             })
             count += 1
 
+        for item in cloud_item_lst:
+            self.ui.playlist_listWidget.addItem(item)
+            count += 1
         self.local_songs_count = count
 
 
@@ -645,7 +654,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
                 item_w.setText(item_text)
                 item_w.setIcon(icon)
                 self.ui.playlist_listWidget.addItem(item_w)
-
+                self.all_received_song_list.append(item_w)
                 self.song_path_list.append({
                     'index': self.local_songs_count,
                     'path': item['path'],
