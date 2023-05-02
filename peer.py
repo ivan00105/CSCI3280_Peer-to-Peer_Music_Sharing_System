@@ -27,10 +27,6 @@ class Peer(QObject):
         # Forward the server_port using UPnP
         self.forward_port_using_upnp()
 
-        threading.Thread(target=self.start_server, name="start_server").start()
-        # Start the client
-        threading.Thread(target=self.start_client, name="start_client").start()
-
     def forward_port_using_upnp(self):
         eport = self.server_port  # External port
         iport = self.server_port  # Internal port
@@ -110,20 +106,22 @@ class Peer(QObject):
     def handle_client(self, client_socket, client_addr):
         try:
             data = client_socket.recv(4096).decode()
-            if data.startswith("SONG_LIST"):
-                song_list = json.loads(data[9:])
+            command, *args = data.split()
+            if command == "SONG_LIST":
+                song_list = json.loads(" ".join(args))
                 if song_list is not None:
                     print(f"Received song list: {song_list}")
                     for song in song_list:
                         song['is_local'] = False
                     self.song_list_received.emit(song_list)
-            elif data.startswith("REQUEST_SONG"):
-                song_name = data[12:].strip()
+            elif command == "REQUEST_SONG":
+                song_name = " ".join(args).strip()
                 self.handle_song_request(song_name, client_socket)
         except Exception as e:
             print(f"Error in handle_client: {e}")
         finally:
             client_socket.close()
+
 
 
     def should_send_song_list(self, peer_addr):
