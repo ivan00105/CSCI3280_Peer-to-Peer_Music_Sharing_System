@@ -17,7 +17,7 @@ from songs import Song
 from edit_song_details import EditFile
 from peer import Peer
 from PyQt5.QtCore import QThread, pyqtSignal
-from PyQt5.QtCore import QBuffer, QIODevice
+from PyQt5.QtCore import QBuffer, QIODevice, QObject
 
 
 import threading
@@ -34,6 +34,19 @@ import socket
 #             self.music_player.update_peers_and_song_lists()
 #             time.sleep(1)
 
+class SaveSongThread(QObject, threading.Thread):
+    finished = pyqtSignal()
+
+    def __init__(self, parent, save_function, song_data, song_name):
+        QObject.__init__(self, parent)
+        threading.Thread.__init__(self)
+        self.save_function = save_function
+        self.song_data = song_data
+        self.song_name = song_name
+
+    def run(self):
+        self.save_function(self.song_data, self.song_name)
+        self.finished.emit()
 
 class MusicPlayer(QtWidgets.QMainWindow):
 
@@ -545,23 +558,23 @@ class MusicPlayer(QtWidgets.QMainWindow):
         song_path = os.path.join(self.directory_path, song_name)
         with open(song_path, 'wb') as file:
             file.write(song_data)
+    
+    def on_save_song_finished(self):
+        print("Song saved successfully")
 
     def play_received_song(self, song_data, song_name):
         # Create a new thread to save the received song to a file
-        save_thread = threading.Thread(target=self.save_song_to_file, args=(song_data, song_name))
+        save_thread = SaveSongThread(self, self.save_song_to_file, song_data, song_name)
+        save_thread.finished.connect(self.on_save_song_finished)
         save_thread.start()
-
         # Create a QBuffer to store the received song data
         self.buffer = QBuffer()
         self.buffer.open(QIODevice.ReadWrite)
         self.buffer.write(song_data)
-
         # Seek to the beginning of the buffer
         self.buffer.seek(0)
-
         # Set the media player to use the buffer as the source
         self.media_player.setMedia(QMediaContent(None), self.buffer)
-
         # Play the song
         self.play_init()
 
