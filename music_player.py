@@ -5,7 +5,6 @@ from PyQt5.QtGui import QPixmap, QFontDatabase, QIcon
 from PyQt5 import QtCore
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtWidgets import QWidget, QListWidgetItem, QLabel, QLineEdit, QVBoxLayout, QLabel, QLineEdit, QListWidget
-from pypinyin import lazy_pinyin, Style
 from PyQt5.QtGui import QColor
 import os
 import random
@@ -28,16 +27,6 @@ import socket
 import pyaudio
 from queue import Queue
 
-
-# class UpdatePeersThread(QThread):
-#     def __init__(self, music_player):
-#         super().__init__()
-#         self.music_player = music_player
-
-#     def run(self):
-#         while True:
-#             self.music_player.update_peers_and_song_lists()
-#             time.sleep(1)
 
 class SaveSongWorker(QObject):
     finished = pyqtSignal()
@@ -64,15 +53,11 @@ class StreamingBuffer(QIODevice):
         self.buffer.open(QIODevice.Append)
         written = self.buffer.write(data)
         self.buffer.close()
-
         # Check if the buffer has reached 50% of the total data size
         if self.buffer.size() > self.total_data_size * 0.5:
             self.buffer.seek(0)
             self.readyRead.emit()
-
         return written
-
-
     def readData(self, maxlen):
         return self.buffer.read(maxlen)
 
@@ -122,11 +107,6 @@ class MusicPlayer(QtWidgets.QMainWindow):
 
         self.lyric_timer = QTimer(self)
         self.lyric_timer.timeout.connect(self.song_timer)
-        self.volume_smooth_timer = QTimer(self)
-        self.volume_smooth_timer.timeout.connect(self.volume_smooth_timeout)
-        self.volume_add_buffer = 0
-        self.volume_buffer = 0
-        self.volume_smooth_low_mode = True
 
         self.media_player = QMediaPlayer(flags=QMediaPlayer.Flags())
         self.song_path_playlist = []
@@ -159,7 +139,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
         self.ui.lyric_listWidget.setVerticalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
         self.ui.lyric_listWidget.verticalScrollBar().setSingleStep(15)
 
-        self.thread_load_songs = Thread()
+        self.thread_load_songs = DBThread()
         self.thread_load_songs.item_signal.connect(self.thread_search_num)
         self.thread_load_songs.stop_signal.connect(self.thread_search_stop)
 
@@ -198,9 +178,6 @@ class MusicPlayer(QtWidgets.QMainWindow):
                 self.update_songs_list()
 
             self.lyric_mode = config.get('lrc_mode', 0)
-
-            self.media_player.setVolume(config.get('player_volume', 90))
-            self.volume_style_refresh()
 
             self.sort_mode = config.get('sort_mode', 0)
             self.set_sort_mode_stylesheet()
@@ -274,67 +251,6 @@ class MusicPlayer(QtWidgets.QMainWindow):
             print('Time over')
             self.play_next()
 
-    def volume_smooth_timeout(self):
-        volume = self.volume_buffer
-        if volume == 0:
-            self.volume_smooth_timer.stop()
-        else:
-            volume_step = volume / 500
-            self.volume_add_buffer += volume_step
-            if self.volume_add_buffer > 1:
-                self.volume_add_buffer -= 1
-                if self.volume_smooth_low_mode:
-                    if self.media_player.volume() - 1 >= 0:
-                        self.media_player.setVolume(self.media_player.volume() - 1)
-                    else:
-                        self.pause_music()
-                        self.volume_smooth_timer.stop()
-                        self.media_player.setVolume(volume)
-                else:
-                    if self.media_player.volume() + 1 <= volume:
-                        self.media_player.setVolume(self.media_player.volume() + 1)
-                    else:
-                        self.volume_smooth_timer.stop()
-
-    def volume_inc(self, step=5):
-        volume = self.media_player.volume()
-        if volume + step > 100:
-            volume = 100
-        else:
-            volume += step
-        self.media_player.setVolume(volume)
-        print(f'Volume adjusted to: {volume}')
-        self.volume_style_refresh()
-
-    def volume_dec(self, step=5):
-        volume = self.media_player.volume()
-        if volume - step < 0:
-            volume = 0
-        else:
-            volume -= step
-        self.media_player.setVolume(volume)
-        print(f'Adjust volumne to：{volume}')
-        self.volume_style_refresh()
-
-    def volume_style_refresh(self):
-        volume = self.media_player.volume()
-
-    def change_volume(self):
-        volume = self.media_player.volume()
-        if volume == 0:
-            volume_out = 100
-        else:
-            volume_out = volume - 20
-            if volume_out < 0:
-                volume_out = 0
-        self.media_player.setVolume(volume_out)
-        self.volume_style_refresh()
-
-    def change_sort_mode(self):
-        self.sort_mode += 1
-        if self.sort_mode > 2:
-            self.sort_mode = 0
-        self.set_sort_mode_stylesheet()
 
     def set_sort_mode_stylesheet(self):
         if self.sort_mode == 0:
@@ -487,40 +403,42 @@ class MusicPlayer(QtWidgets.QMainWindow):
         with SqliteDB() as us:
             sql = 'select path from music_info'
             results = us.fetch_all(sql)
-            sql_list = []
-            for result in results:
-                sql_list.append(result['path'])
-            updated_list, removed_list = list_compare(self.local_path_list, sql_list)
+            db_paths = [result['path'] for result in results]
 
-            if len(updated_list) == 0 and len(removed_list) == 0:
+            updated_paths, removed_paths = list_compare(self.local_path_list, db_paths)
+
+            if len(updated_paths) == 0 and len(removed_paths) == 0:
                 print('counted fine')
             else:
-                # update
-                for path in updated_list:
-                    song = Song(path)
-                    sql = """
-                        insert into music_info (file_name, path, title, artist, album, date, genre, mtime, ctime) 
-                        values (?,?,?,?,?,?,?,?,?)
-                    """
-                    file_name = song.path.split('/')[-1]
-                    get_mtime = int(os.path.getmtime(song.path))
-                    get_ctime = int(os.path.getctime(song.path))
-                    params = (file_name, song.path, song.title, song.artist, song.album, song.date, song.genre,
-                              get_mtime, get_ctime)
-                    us.cursor.execute(sql, params)
+                for path in updated_paths:
+                    self.insert_song_into_db(path, us)
                     print(f'inserted{path}')
 
-                # replace
-                for path in removed_list:
-                    sql = """
-                        delete from music_info
-                        where path like ?
-                    """
-                    params = (path,)
-                    us.cursor.execute(sql, params)
-                    print(f'remove{path}')
+                for path in removed_paths:
+                    self.delete_song_from_db(path, us)
+                    print(f'removed{path}')
 
                 QtWidgets.QMessageBox.information(self, "datebase updated", QtWidgets.QMessageBox.Ok)
+
+    def insert_song_into_db(self, path, us):
+        song = Song(path)
+        sql = """
+            insert into music_info (file_name, path, title, artist, album, date, genre, mtime, ctime) 
+            values (?,?,?,?,?,?,?,?,?)
+        """
+        file_name = song.path.split('/')[-1]
+        get_mtime = int(os.path.getmtime(song.path))
+        get_ctime = int(os.path.getctime(song.path))
+        params = (file_name, song.path, song.title, song.artist, song.album, song.date, song.genre, get_mtime, get_ctime)
+        us.cursor.execute(sql, params)
+
+    def delete_song_from_db(self, path, us):
+        sql = """
+            delete from music_info
+            where path like ?
+        """
+        params = (path,)
+        us.cursor.execute(sql, params)
 
 
     def song_start_switch(self):
@@ -537,14 +455,10 @@ class MusicPlayer(QtWidgets.QMainWindow):
         if self.is_started is True:
             self.audio_visualizer.stop_animation()
             self.pause_music()
-            # self.volume_smooth_low_mode = True
-            # self.volume_smooth_timer.start(1)
         else:
             self.audio_visualizer.resume_animation()
             self.volume_smooth_low_mode = False
-            # self.media_player.setVolume(0)
             self.play_music()
-            # self.volume_smooth_timer.start(1)
 
     def song_find(self):
         flag = False
@@ -841,17 +755,6 @@ class MusicPlayer(QtWidgets.QMainWindow):
         self.vis_label.setStyleSheet("color: white; font: 18pt; font-weight:bold")
         self.vis_label.setAlignment(QtCore.Qt.AlignCenter)
 
-        # self.vis_layout = QtWidgets.QVBoxLayout(self.ui.widget_vis)
-        # self.vis_layout.setObjectName("visualization")
-        # self.audio_visualizer = AudioVisualizer(self.song_selected.path)
-        # self.audio_visualizer.setMinimumSize(QtCore.QSize(300, 300))
-        # self.audio_visualizer.setGeometry(QtCore.QRect(0, 0, 300, 300))
-        # self.vis_layout.addWidget(self.vis_label)
-        # self.vis_layout.addWidget(self.audio_visualizer)
-
-        """
-        new code
-        """
         if not hasattr(self, "audio_visualizer"):
             self.vis_layout = QtWidgets.QVBoxLayout(self.ui.widget_vis)
             self.vis_layout.setObjectName("visualization")
@@ -959,7 +862,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
             )
 
 
-class Thread(QtCore.QThread):
+class DBThread(QtCore.QThread):
     stop_signal = QtCore.pyqtSignal()
     item_signal = QtCore.pyqtSignal(int)
 

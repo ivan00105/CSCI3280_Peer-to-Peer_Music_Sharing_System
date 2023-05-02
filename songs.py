@@ -43,71 +43,57 @@ def read_wav_file(filename, buffer_size=2**10*8):
 
 class Song:
     def __init__(self, path):
-        self.path: str = path
-        self.initialize_attributes()
-        self.load_metadata()
+        self.path = path
+        self._initialize_attributes()
+        self._load_metadata()
 
-    def initialize_attributes(self):
-        self.title = self.artist = self.album = self.date = self.genre = 'None'
+    def _initialize_attributes(self):
+        attrs = ['title', 'artist', 'album', 'date', 'genre']
+        for attr in attrs:
+            setattr(self, attr, 'None')
         self.lyrics = ''
         self.cover = b''
         self.sample_rate = self.bits_per_sample = self.bitrate = self.channels = self.length = 0
         self.audio_type = ''
 
-    def load_metadata(self):
+    def _load_metadata(self):
         if not self.path:
             return
         filetype = self.path.split('.')[-1].lower()
 
         if filetype in ['wav', 'wave']:
-            self.audio_type = 'WAV'
-            wav_info = read_wav_file(self.path)
-            self.parse_wav_info(wav_info)
-            audio = WAVE(self.path)
-            self.parse_id3_tag(audio)
-            if self.title == 'None':
-                self.title = self.path.split('/')[-1].split('.')[0]
+            self._load_wav_metadata()
         elif filetype == 'mp3':
-            self.audio_type = 'MP3'
-            audio = MP3(self.path)
-            self.parse_audio_info(audio.info)
-            self.parse_id3_tag(audio)
+            self._load_mp3_metadata()
         else:
             self.audio_type = 'UNKNOWN'
             audio = File(self.path)
-        
-        self.load_lyrics()
 
-    def get_lyrics_dictionary(self):
-        if not self.lyrics:
-            return {}
-        lrc_list = self.lyrics.splitlines()
-        func = re.compile("\\[.*?]")
-        lrc_dict = {}
-        for item in lrc_list:
-            searched = func.search(item)
-            if not searched:
-                continue
-            lrc_time = searched.group()
-            time_str_list = lrc_time[1:-1].split(":")
-            if not time_str_list[0].isdigit():
-                continue
-            lrc_time_int = int(time_str_list[0]) * 60000 + int(float(time_str_list[1]) * 1000)
-            lrc_text = func.sub('', item)
-            lrc_text = ' '.join(lrc_text.split())
-            if lrc_dict.get(lrc_time_int):
-                lrc_dict[lrc_time_int].append(lrc_text)
-            else:
-                lrc_dict[lrc_time_int] = [lrc_text]
-        return lrc_dict
+        self._load_lyrics()
 
-    def parse_audio_info(self, audio_info):
+    def _load_wav_metadata(self):
+        self.audio_type = 'WAV'
+        wav_info = read_wav_file(self.path)
+        self._parse_wav_info(wav_info)
+        audio = WAVE(self.path)
+        self._parse_id3_tag(audio)
+        if self.title == 'None':
+            self.title = self.path.split('/')[-1].split('.')[0]
+
+    def _load_mp3_metadata(self):
+        self.audio_type = 'MP3'
+        audio = MP3(self.path)
+        self._parse_audio_info(audio.info)
+        self._parse_id3_tag(audio)
+
+    def _parse_audio_info(self, audio_info):
         self.sample_rate = audio_info.sample_rate
         self.channels = audio_info.channels
         self.length = audio_info.length
         self.bitrate = audio_info.bitrate
 
-    def parse_id3_tag(self, audio):
+    #extract metadata from the ID3 tags which is commonly used in MP3
+    def _parse_id3_tag(self, audio):
         for item in audio:
             if 'APIC' in item:
                 self.cover = audio.get(item).data
@@ -124,20 +110,42 @@ class Song:
         if audio.get('TCON'):
             self.genre = str(audio.get('TCON'))
 
-    def parse_wav_info(self, wav_info):
+    def _parse_wav_info(self, wav_info):
         self.sample_rate = wav_info["SampleRate"]
         self.channels = wav_info["NumChannels"]
         self.bits_per_sample = wav_info["BitsPerSample"]
         self.audio_type = 'WAV'
-        
+
         # Calculate the length of the song in seconds
         self.length = wav_info["Subchunk2Size"] / (self.sample_rate * self.channels * (self.bits_per_sample // 8))
 
-    def load_lyrics(self):
+    def _load_lyrics(self):
         lyrics_path = os.path.splitext(self.path)[0] + '.lrc'
         if not self.lyrics and os.path.exists(lyrics_path):
             with open(lyrics_path, "r", encoding='utf-8', errors='ignore') as f:
                 self.lyrics = f.read()
 
+    def get_lyrics_dictionary(self):
+        if not self.lyrics:
+            return {}
+        lrc_lines = self.lyrics.splitlines()
+        time_pattern = re.compile("\\[.*?]")
+        lyrics_dict = {}
+        for line in lrc_lines:
+            matched_time = time_pattern.search(line)
+            if not matched_time:
+                continue
 
-
+            time_str = matched_time.group()[1:-1]
+            time_parts = time_str.split(":")
+            if not time_parts[0].isdigit():
+                continue
+            timestamp = int(time_parts[0]) * 60000 + int(float(time_parts[1]) * 1000)
+            lyrics_text = time_pattern.sub('', line)
+            cleaned_lyrics_text = ' '.join(lyrics_text.split())
+            if timestamp in lyrics_dict:
+                lyrics_dict[timestamp].append(cleaned_lyrics_text)
+            else:
+                lyrics_dict[timestamp] = [cleaned_lyrics_text]
+    
+        return lyrics_dict

@@ -6,7 +6,7 @@ QSlider::groove:horizontal {
 
     QSlider::sub-page:horizontal {
 
-    background: green;
+    background: white;
 
     border-radius: 0px;
 
@@ -32,7 +32,7 @@ QSlider::groove:horizontal {
 
     QSlider::handle:horizontal {
 
-    background: green;
+    background: white;
 
     border: 1px solid azure;
 
@@ -50,9 +50,9 @@ QSlider::groove:horizontal {
 
     QSlider::handle:horizontal:hover {
 
-    background: blue;
+    background: white;
 
-    border: 1px solid blue;
+    border: 1px solid white;
 
     border-radius: 8px;
 
