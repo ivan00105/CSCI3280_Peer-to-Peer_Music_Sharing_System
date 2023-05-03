@@ -1,6 +1,6 @@
 from PyQt5 import QtWidgets
 from player_window import UI_MainWindow
-from songs import Song
+from decode import Song
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import QCoreApplication, Qt, QUrl, QTimer, QPoint
 from PyQt5.QtGui import QPixmap, QFontDatabase

@@ -12,7 +12,7 @@ import json
 from audio_visualizer import AudioVisualizer
 from database import SqliteDB
 from player_window import UI_MainWindow
-from songs import Song
+from decode import Song
 from edit_song_details import EditFile
 from peer import Peer
 from PyQt5.QtCore import QThread, pyqtSignal, QThread
@@ -700,7 +700,7 @@ class MusicPlayer(QtWidgets.QMainWindow):
             file_path = item['path']
             file_name = os.path.basename(file_path)
             local_file_path = os.path.normpath(os.path.join(self.directory_path, file_name))
-            if local_file_path not in [os.path.normpath(x) for x in local_song_paths]:
+            if local_file_path not in [os.path.normpath(x) for x in local_song_paths] and file_name not in self.all_received_song_list:
                 icon_path = "images/cloud.png"
                 icon = QIcon(icon_path)
                 item_text = file_name
